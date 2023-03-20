@@ -17,19 +17,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const ThemeContext = createContext();
 
-const DarkTheme = {
-  dark: true,
-  colors: {
-    primary: '#4CAF50',
-    background: '#1c1c1c',
-    card: '#3c3c3c',
-    text: '#F5F5F5',
-    border: '#4CAF50',
-    notification: '#4CAF50',
-  },
-};
-
-const LightTheme = {
+const theme = {
   dark: false,
   colors: {
     primary: '#4CAF50',
@@ -51,6 +39,7 @@ const handleLogin = (email, password) => {
   //greater than 8 characters, including: one uppercase, one number and one special
 
 };
+
 const handleRegister = () => {
   // handle register
 };
@@ -74,7 +63,7 @@ function LoginScreen({ navigation }) {
     <View style={currentStyles.container}>
       <View style={currentStyles.titleContainer}>
         <Text style={currentStyles.whatsThat}>whatsThat</Text>
-        <Image style={currentStyles.logo} source={require('./logo.png')} />
+        <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
       </View>
       <View style={currentStyles.inputContainer}>
         <TextInput
@@ -117,7 +106,7 @@ function RegisterScreen() {
     <View style={currentStyles.container}>
       <View style={currentStyles.titleContainer}>
         <Text style={currentStyles.whatsThat}>whatsThat</Text>
-        <Image style={currentStyles.logo} source={require('./logo.png')} />
+        <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
       </View>
       <View style={currentStyles.inputContainer}>
         <TextInput
@@ -175,7 +164,7 @@ function SettingsScreen() {
     <View style={currentStyles.container}>
       <View style={currentStyles.titleContainer}>
         <Text style={currentStyles.whatsThat}>whatsThat</Text>
-        <Image style={currentStyles.logo} source={require('./logo.png')} />
+        <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
       </View>
       <Pressable  style={currentStyles.btn}  
       onPress={toggleDarkMode}>
@@ -192,13 +181,45 @@ const Tab = createBottomTabNavigator();
 function HomeTabs() {
   return (
     <Tab.Navigator
-      tabBarOptions={{
-        activeTintColor: '#4CAF50',
-        inactiveTintColor: 'gray',
+      screenOptions={{
+        "tabBarActiveTintColor": "#4CAF50",
+        "tabBarInactiveTintColor": "gray",
+        "tabBarStyle": [
+          {
+            "display": "flex"
+          },
+          null
+        ]
       }}
     >
-      <Tab.Screen name="Login" component={LoginScreen} />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen
+        name="Login"
+        component={LoginScreen}
+        options={{
+          tabBarIcon: ({ color }) => (
+            <View>
+              <Image
+                source={require('./assets/home.png')}
+                style={{ tintColor: color }}
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          tabBarIcon: ({ color }) => (
+            <View>
+              <Image
+                source={require('./assets/settings.png')}
+                style={{ tintColor: color }}
+              />
+            </View>
+          ),
+        }}
+      />
     </Tab.Navigator>
   );
 }
@@ -206,7 +227,7 @@ function HomeTabs() {
 function App() {
   return (
     <ThemeProvider>
-      <NavigationContainer theme={LightTheme}>
+      <NavigationContainer theme={theme}>
         <Stack.Navigator initialRouteName="Home">
         <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />

@@ -3,17 +3,14 @@ import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
   StyleSheet,
   Image,
-  Button,
   Pressable,
-  Switch,
+  ScrollView,
 } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 const ThemeContext = createContext();
 
@@ -38,10 +35,6 @@ const handleLogin = (email, password) => {
   console.log(pwRX.test(password));
   //greater than 8 characters, including: one uppercase, one number and one special
 
-};
-
-const handleRegister = () => {
-  // handle register
 };
 
 function ThemeProvider({ children }) {
@@ -102,54 +95,69 @@ function RegisterScreen() {
   const [inputFname, setInputFname] = useState('');
   const [inputLname, setInputLname] = useState('');
   const { currentStyles } = useContext(ThemeContext);
+
+const handleRegister = (fname, lname, email, password) => {
+  const url = 'http://localhost:3333/api/1.0.0/user';
+
+  // handle login
+  var validator = require("email-validator");
+  console.log(("Email: " +validator.validate(email))); //true
+
+  const pwRX = new RegExp("^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
+  console.log("Password: " + pwRX.test(password));
+  //greater than 8 characters, including: one uppercase, one number and one special
+  
+};
+
   return (
-    <View style={currentStyles.container}>
-      <View style={currentStyles.titleContainer}>
-        <Text style={currentStyles.whatsThat}>whatsThat</Text>
-        <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+    <ScrollView contentContainerStyle={currentStyles.scrollContainer} keyboardShouldPersistTaps="handled">
+      <View style={currentStyles.container}>
+        <View style={currentStyles.titleContainer}>
+          <Text style={currentStyles.whatsThat}>whatsThat</Text>
+          <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+        </View>
+        <View style={currentStyles.inputContainer}>
+          <TextInput
+            style={currentStyles.input}
+            placeholder="First Name"
+            placeholderTextColor="#c4c4c4"
+            value={inputFname}
+            onChangeText={setInputFname}
+          />
+        </View>
+        <View style={currentStyles.inputContainer}>
+          <TextInput
+            style={currentStyles.input}
+            placeholder="Last Name"
+            placeholderTextColor="#c4c4c4"
+            value={inputLname}
+            onChangeText={setInputLname}
+          />
+        </View>
+        <View style={currentStyles.inputContainer}>
+          <TextInput
+            style={currentStyles.input}
+            placeholder="Username"
+            placeholderTextColor="#c4c4c4"
+            value={inputEmail}
+            onChangeText={setInputEmail}
+          />
+        </View>
+        <View style={currentStyles.inputContainer}>
+          <TextInput
+            secureTextEntry={true}
+            style={currentStyles.input}
+            placeholder="Password"
+            placeholderTextColor="#c4c4c4"
+            value={inputPassword}
+            onChangeText={setInputPassword}
+          /> 
+        </View>
+        <Pressable style={currentStyles.btn} onPress={handleRegister}>
+          <Text style={currentStyles.btnText}>Register</Text>
+        </Pressable>
       </View>
-      <View style={currentStyles.inputContainer}>
-        <TextInput
-          style={currentStyles.input}
-          placeholder="First Name"
-          placeholderTextColor="#c4c4c4"
-          value={inputFname}
-          onChangeText={setInputFname}
-        />
-      </View>
-      <View style={currentStyles.inputContainer}>
-        <TextInput
-          style={currentStyles.input}
-          placeholder="Last Name"
-          placeholderTextColor="#c4c4c4"
-          value={inputLname}
-          onChangeText={setInputLname}
-        />
-      </View>
-      <View style={currentStyles.inputContainer}>
-        <TextInput
-          style={currentStyles.input}
-          placeholder="Username"
-          placeholderTextColor="#c4c4c4"
-          value={inputEmail}
-          onChangeText={setInputEmail}
-        />
-      </View>
-      <View style={currentStyles.inputContainer}>
-        <TextInput
-          secureTextEntry={true}
-          style={currentStyles.input}
-          placeholder="Password"
-          placeholderTextColor="#c4c4c4"
-          value={inputPassword}
-          onChangeText={setInputPassword}
-        /> 
-      </View>
-      <Pressable  style={currentStyles.btn}  
-      onPress={() => handleLogin(inputFname, inputLname, inputEmail, inputPassword)}>
-        <Text style={currentStyles.btnText} >Register</Text>
-      </Pressable>
-    </View>
+    </ScrollView>
   );
 };
 

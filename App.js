@@ -167,7 +167,7 @@ function RegisterScreen() {
             onChangeText={setInputPassword}
           /> 
         </View>
-        <Pressable style={currentStyles.btn} onPress={handleRegister(inputFname, inputLname, inputEmail, inputPassword)}>
+        <Pressable style={currentStyles.btn} onPress={() => handleRegister(inputFname, inputLname, inputEmail, inputPassword)}>
           <Text style={currentStyles.btnText}>Register</Text>
         </Pressable>
       </View>

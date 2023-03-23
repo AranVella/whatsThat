@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, component } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,8 @@ import {
   Image,
   Pressable,
   ScrollView,
+  ActivityIndicator,
+  
 } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -27,6 +29,11 @@ const theme = {
 };
 
 const handleLogin = (email, password) => {
+  console.log("handleLogin")
+  console.log("Email: " + email);
+  console.log("Password: " + password);
+  const url = 'http://localhost:3333/api/1.0.0/login';
+
   // handle login
   var validator = require("email-validator");
   console.log((validator.validate(email))); //true
@@ -35,9 +42,27 @@ const handleLogin = (email, password) => {
   console.log(pwRX.test(password));
   //greater than 8 characters, including: one uppercase, one number and one special
 
+  try{
+    fetch(url, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email.value,
+          password: password.value,
+        }),
+      });
+  }
+  catch (error){
+    console.error(error);
+  }
+
 };
 
 function ThemeProvider({ children }) {
+  console.log("ThemeProvider")
   const [isDarkMode, setIsDarkMode] = useState(false);
   const currentStyles = isDarkMode ? darkStyles : lightStyles;
 
@@ -49,6 +74,7 @@ function ThemeProvider({ children }) {
 }
 
 function LoginScreen({ navigation }) {
+  console.log("LoginScreen")
   const [inputEmail, setInputEmail] = useState('');
   const [inputPassword, setInputPassword] = useState('');
   const { currentStyles } = useContext(ThemeContext);
@@ -61,7 +87,7 @@ function LoginScreen({ navigation }) {
       <View style={currentStyles.inputContainer}>
         <TextInput
           style={currentStyles.input}
-          placeholder="Username"
+          placeholder="Email"
           placeholderTextColor="#c4c4c4"
           value={inputEmail}
           onChangeText={setInputEmail}
@@ -90,24 +116,12 @@ function LoginScreen({ navigation }) {
 };
 
 function RegisterScreen() {
+  console.log("RegisterScreen")
   const [inputEmail, setInputEmail] = useState('');
   const [inputPassword, setInputPassword] = useState('');
   const [inputFname, setInputFname] = useState('');
   const [inputLname, setInputLname] = useState('');
   const { currentStyles } = useContext(ThemeContext);
-
-const handleRegister = (fname, lname, email, password) => {
-  const url = 'http://localhost:3333/api/1.0.0/user';
-
-  // handle login
-  var validator = require("email-validator");
-  console.log(("Email: " +validator.validate(email))); //true
-
-  const pwRX = new RegExp("^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
-  console.log("Password: " + pwRX.test(password));
-  //greater than 8 characters, including: one uppercase, one number and one special
-  
-};
 
   return (
     <ScrollView contentContainerStyle={currentStyles.scrollContainer} keyboardShouldPersistTaps="handled">
@@ -137,7 +151,7 @@ const handleRegister = (fname, lname, email, password) => {
         <View style={currentStyles.inputContainer}>
           <TextInput
             style={currentStyles.input}
-            placeholder="Username"
+            placeholder="Email"
             placeholderTextColor="#c4c4c4"
             value={inputEmail}
             onChangeText={setInputEmail}
@@ -153,7 +167,7 @@ const handleRegister = (fname, lname, email, password) => {
             onChangeText={setInputPassword}
           /> 
         </View>
-        <Pressable style={currentStyles.btn} onPress={handleRegister}>
+        <Pressable style={currentStyles.btn} onPress={handleRegister(inputFname, inputLname, inputEmail, inputPassword)}>
           <Text style={currentStyles.btnText}>Register</Text>
         </Pressable>
       </View>
@@ -161,7 +175,45 @@ const handleRegister = (fname, lname, email, password) => {
   );
 };
 
+const handleRegister = (fname, lname, email, password) => {
+  console.log("handleRegister")
+  console.log("First name: " + fname);
+  console.log("Last name: " + lname);
+  console.log("Email: " + email);
+  console.log("Password: " + password);
+  const url = 'http://localhost:3333/api/1.0.0/user';
+
+  // handle login
+  var validator = require("email-validator");
+  console.log(("Email: " +validator.validate(email))); //true
+
+  const pwRX = new RegExp("^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
+  console.log("Password: " + pwRX.test(password));
+  //greater than 8 characters, including: one uppercase, one number and one special
+  
+  try{
+    fetch(url, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          first_name: fname.value,
+          last_name: lname.value,
+          email: email.value,
+          password: password.value,
+        }),
+      });
+  }
+  catch (error){
+    console.error(error);
+  }
+
+};
+
 function SettingsScreen() {
+  console.log("Settings")
   const { isDarkMode, setIsDarkMode, currentStyles } = useContext(ThemeContext);
 
   const toggleDarkMode = () => {
@@ -182,11 +234,11 @@ function SettingsScreen() {
   );
 }
 
-
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function HomeTabs() {
+  console.log("HomeTabs")
   return (
     <Tab.Navigator
       screenOptions={{
@@ -233,6 +285,7 @@ function HomeTabs() {
 }
 
 function App() {
+  console.log("App")
   return (
     <ThemeProvider>
       <NavigationContainer theme={theme}>
@@ -402,68 +455,4 @@ const lightStyles = StyleSheet.create({
     fontSize: 16,
     marginRight: 10,
   },
-})
-
-const currentStyles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingTop: 50,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 10,
-    marginTop: 10,
-    marginHorizontal: 20,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    backgroundColor: '#008000',
-    shadowColor: '#000000',
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 5,
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    marginRight: 20,
-    paddingHorizontal: 10,
-    color: '#1c1c1c',
-  },
-  btn: {
-    backgroundColor: '#4CAF50',
-    borderRadius: 10,
-    height: 50,
-    paddingHorizontal: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-    alignSelf: 'center',
-    marginBottom : 10,
-  },
-  btnText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  whatsThat: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    color: '#4CAF50',
-    marginRight: 10,
-  },
-  logo: {
-    width: 30,
-    height: 30,
-  }
 })

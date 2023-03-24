@@ -7,7 +7,7 @@ import {
   Image,
   Pressable,
   ScrollView,
-  
+  Alert,
 } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -80,6 +80,7 @@ function LoginScreen({ navigation }) {
       Accept: 'application/json',
       'Content-Type': 'application/json',
     },
+
     body: JSON.stringify({
       email: email,
       password: password,
@@ -92,11 +93,12 @@ function LoginScreen({ navigation }) {
       // Store the token in AsyncStorage
       try {
         await AsyncStorage.setItem('x-authorization', responseJson.token);
+        navigation.navigate('HomeTabs');
       } catch (error) {
         console.warn('Error saving token:', error);
       }
 
-      navigation.navigate('Home');
+      
     })
     .catch((error) => {
       console.warn(error);
@@ -143,13 +145,59 @@ function LoginScreen({ navigation }) {
   );
 };
 
-function RegisterScreen() {
+function RegisterScreen ({navigation}) {
   console.debug("RegisterScreen")
   const [inputEmail, setInputEmail] = useState('');
   const [inputPassword, setInputPassword] = useState('');
   const [inputFname, setInputFname] = useState('');
   const [inputLname, setInputLname] = useState('');
   const { currentStyles } = useContext(ThemeContext);
+
+  const handleRegister = (fname, lname, email, password) => {
+    console.debug("handleRegister")
+    console.debug("First name: " + fname);
+    console.debug("Last name: " + lname);
+    console.debug("Email: " + email);
+    console.debug("Password: " + password);
+  
+    // handle login
+    var validator = require("email-validator");
+    console.debug(("Email: " +validator.validate(email))); //true
+  
+    const pwRX = new RegExp("^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
+    console.debug("Password: " + pwRX.test(password));
+    //greater than 8 characters, including: one uppercase, one number and one special
+    
+    fetch('http://192.168.1.245:3333/api/1.0.0/user', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+  
+      body: JSON.stringify({
+        first_name: fname,
+        last_name: lname,
+        email: email,
+        password: password,
+      }),
+    })
+      .then((response) => response.json())
+      .then((responseJson) => {
+        //Showing response message coming from server 
+        console.log(responseJson);
+        Alert.alert('Alert', 'Registration Successful', 
+        {text: 'OK'});
+        navigation.navigate('Login');
+  
+      })
+      .catch((error) => {
+      //display error message
+       console.warn(error);
+      });
+  
+  };
+  
 
   return (
     <ScrollView contentContainerStyle={currentStyles.scrollContainer} keyboardShouldPersistTaps="handled">
@@ -203,9 +251,43 @@ function RegisterScreen() {
   );
 };
 
-function HomeScreen({ navigation }) {
-  console.debug("HomeScreen")
+function ChatsScreen() {
+  console.debug("ChatScreen")
   const { currentStyles } = useContext(ThemeContext);
+
+  return (
+      <View style={currentStyles.container}>
+        <View style={currentStyles.titleContainer}>
+          <Text style={currentStyles.whatsThat}>whatsThat</Text>
+          <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+        </View>
+        <Text style={currentStyles.text}>You are logged in</Text>
+      </View>
+  );
+};
+
+function ContactsScreen() {
+  console.debug("ContactsScreen")
+  const { currentStyles } = useContext(ThemeContext);
+
+  return (
+      <View style={currentStyles.container}>
+        <View style={currentStyles.titleContainer}>
+          <Text style={currentStyles.whatsThat}>whatsThat</Text>
+          <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+        </View>
+        <Text style={currentStyles.text}>You are logged in</Text>
+      </View>
+  );
+};
+
+function SettingsScreen({ navigation }) {
+  console.debug("Settings")
+  const { isDarkMode, setIsDarkMode, currentStyles } = useContext(ThemeContext);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
 
   const handleLogout = async() => {
   
@@ -235,69 +317,6 @@ function HomeScreen({ navigation }) {
   };
 
   return (
-      <View style={currentStyles.container}>
-        <View style={currentStyles.titleContainer}>
-          <Text style={currentStyles.whatsThat}>whatsThat</Text>
-          <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
-        </View>
-        <Text style={currentStyles.text}>You are logged in</Text>
-        <Pressable style={currentStyles.btn} onPress={() => handleLogout()}>
-          <Text style={currentStyles.btnText}>Log out</Text>
-        </Pressable>
-      </View>
-  );
-};
-
-const handleRegister = (fname, lname, email, password) => {
-  console.debug("handleRegister")
-  console.debug("First name: " + fnamconsole.debuge);
-  console.debug("Last name: " + lname);
-  console.debug("Email: " + email);
-  console.debug("Password: " + password);
-
-  // handle login
-  var validator = require("email-validator");
-  console.debug(("Email: " +validator.validate(email))); //true
-
-  const pwRX = new RegExp("^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
-  console.debug("Password: " + pwRX.test(password));
-  //greater than 8 characters, including: one uppercase, one number and one special
-  
-  fetch('http://192.168.1.245:3333/api/1.0.0/user', {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
-
-    body: JSON.stringify({
-      first_name: fname,
-      flast_name: lname,
-      email: email,
-      password: password,
-    }),
-  })
-    .then((response) => response.json())
-    .then((responseJson) => {
-      //Showing response message coming from server 
-      console.log(responseJson);
-    })
-    .catch((error) => {
-    //display error message
-     console.warn(error);
-    });
-
-};
-
-function SettingsScreen() {
-  console.debug("Settings")
-  const { isDarkMode, setIsDarkMode, currentStyles } = useContext(ThemeContext);
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
-  };
-
-  return (
     <View style={currentStyles.container}>
       <View style={currentStyles.titleContainer}>
         <Text style={currentStyles.whatsThat}>whatsThat</Text>
@@ -306,6 +325,9 @@ function SettingsScreen() {
       <Pressable  style={currentStyles.btn}  
       onPress={toggleDarkMode}>
         <Text>{isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</Text>
+        </Pressable>
+        <Pressable style={currentStyles.btn} onPress={() => handleLogout()}>
+          <Text>Log out</Text>
         </Pressable>
     </View>
   );
@@ -319,8 +341,8 @@ function HomeTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        "tabBarActiveTintColor": "#4CAF50",
-        "tabBarInactiveTintColor": "gray",
+        "tabBarActiveTintColor": "white",
+        "tabBarInactiveTintColor": "#3c3c3c",
         "tabBarStyle": [
           {
             "display": "flex"
@@ -330,13 +352,27 @@ function HomeTabs() {
       }}
     >
       <Tab.Screen
-        name="HomeScreen"
-        component={HomeScreen}
+        name="Chats"
+        component={ChatsScreen}
         options={{
           tabBarIcon: ({ color }) => (
             <View>
               <Image
-                source={require('./assets/home.png')}
+                source={require('./assets/chat.png')}
+                style={{ tintColor: color }}
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Contacts"
+        component={ContactsScreen}
+        options={{
+          tabBarIcon: ({ color }) => (
+            <View>
+              <Image
+                source={require('./assets/contacts.png')}
                 style={{ tintColor: color }}
               />
             </View>
@@ -370,7 +406,7 @@ function App() {
         <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen
-            name="Home"
+            name="HomeTabs"
             component={HomeTabs}
             options={{ headerShown: false }}
           />

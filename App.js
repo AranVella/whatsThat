@@ -7,12 +7,12 @@ import {
   Image,
   Pressable,
   ScrollView,
-  ActivityIndicator,
   
 } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const ThemeContext = createContext();
 
@@ -28,41 +28,23 @@ const theme = {
   },
 };
 
-const handleLogin = (email, password) => {
-  console.log("handleLogin")
-  console.log("Email: " + email);
-  console.log("Password: " + password);
-  const url = 'http://localhost:3333/api/1.0.0/login';
-
-  // handle login
-  var validator = require("email-validator");
-  console.log((validator.validate(email))); //true
-
-  const pwRX = new RegExp("^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
-  console.log(pwRX.test(password));
-  //greater than 8 characters, including: one uppercase, one number and one special
-
-  try{
-    fetch(url, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: email.value,
-          password: password.value,
-        }),
-      });
+const getToken = async () => {
+  try {
+    const token = await AsyncStorage.getItem('x-authorization');
+    if (token !== null) {
+      console.log('Token:', token);
+      return token;
+      // Use the token as needed
+    } else {
+      console.log('Token not found');
+    }
+  } catch (error) {
+    console.warn('Error getting token:', error);
   }
-  catch (error){
-    console.error(error);
-  }
-
 };
 
 function ThemeProvider({ children }) {
-  console.log("ThemeProvider")
+  console.debug("ThemeProvider")
   const [isDarkMode, setIsDarkMode] = useState(false);
   const currentStyles = isDarkMode ? darkStyles : lightStyles;
 
@@ -74,11 +56,56 @@ function ThemeProvider({ children }) {
 }
 
 function LoginScreen({ navigation }) {
-  console.log("LoginScreen")
+  console.debug("LoginScreen")
   const [inputEmail, setInputEmail] = useState('');
   const [inputPassword, setInputPassword] = useState('');
   const { currentStyles } = useContext(ThemeContext);
+
+  const handleLogin = (email, password) => {
+    console.debug("handleLogin")
+    console.debug("Email: " + email);
+    console.debug("Password: " + password);
+  
+    // handle login
+    var validator = require("email-validator");
+    console.debug((validator.validate(email))); //true
+  
+    const pwRX = new RegExp("^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
+    console.debug(pwRX.test(password));
+    //greater than 8 characters, including: one uppercase, one number and one special
+  
+    fetch('http://192.168.1.245:3333/api/1.0.0/login', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      email: email,
+      password: password,
+    }),
+  })
+    .then((response) => response.json())
+    .then(async (responseJson) => {
+      console.log(responseJson);
+
+      // Store the token in AsyncStorage
+      try {
+        await AsyncStorage.setItem('x-authorization', responseJson.token);
+      } catch (error) {
+        console.warn('Error saving token:', error);
+      }
+
+      navigation.navigate('Home');
+    })
+    .catch((error) => {
+      console.warn(error);
+    });
+  
+  };
+
   return (
+    <ScrollView contentContainerStyle={currentStyles.scrollContainer} keyboardShouldPersistTaps="handled">
     <View style={currentStyles.container}>
       <View style={currentStyles.titleContainer}>
         <Text style={currentStyles.whatsThat}>whatsThat</Text>
@@ -112,11 +139,12 @@ function LoginScreen({ navigation }) {
         <Text style={currentStyles.btnText} >Don't have an account? Register here</Text>
       </Pressable>
     </View>
+    </ScrollView>
   );
 };
 
 function RegisterScreen() {
-  console.log("RegisterScreen")
+  console.debug("RegisterScreen")
   const [inputEmail, setInputEmail] = useState('');
   const [inputPassword, setInputPassword] = useState('');
   const [inputFname, setInputFname] = useState('');
@@ -175,45 +203,94 @@ function RegisterScreen() {
   );
 };
 
+function HomeScreen({ navigation }) {
+  console.debug("HomeScreen")
+  const { currentStyles } = useContext(ThemeContext);
+
+  const handleLogout = async() => {
+  
+    const token = await getToken();
+  
+    console.log('Token for logout:', token);
+  
+    fetch('http://192.168.1.245:3333/api/1.0.0/logout', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'x-authorization': token,
+      }
+    })
+    .then((response) => {
+      if (response.status == 200) {
+        navigation.navigate('Login');
+      } else {
+        throw new Error('Server response not OK - ' + response.status);
+      }
+    })
+    .catch((error) => {
+      console.warn(error);
+    });
+  
+  };
+
+  return (
+      <View style={currentStyles.container}>
+        <View style={currentStyles.titleContainer}>
+          <Text style={currentStyles.whatsThat}>whatsThat</Text>
+          <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+        </View>
+        <Text style={currentStyles.text}>You are logged in</Text>
+        <Pressable style={currentStyles.btn} onPress={() => handleLogout()}>
+          <Text style={currentStyles.btnText}>Log out</Text>
+        </Pressable>
+      </View>
+  );
+};
+
 const handleRegister = (fname, lname, email, password) => {
-  console.log("handleRegister")
-  console.log("First name: " + fname);
-  console.log("Last name: " + lname);
-  console.log("Email: " + email);
-  console.log("Password: " + password);
-  const url = 'http://localhost:3333/api/1.0.0/user';
+  console.debug("handleRegister")
+  console.debug("First name: " + fnamconsole.debuge);
+  console.debug("Last name: " + lname);
+  console.debug("Email: " + email);
+  console.debug("Password: " + password);
 
   // handle login
   var validator = require("email-validator");
-  console.log(("Email: " +validator.validate(email))); //true
+  console.debug(("Email: " +validator.validate(email))); //true
 
   const pwRX = new RegExp("^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
-  console.log("Password: " + pwRX.test(password));
+  console.debug("Password: " + pwRX.test(password));
   //greater than 8 characters, including: one uppercase, one number and one special
   
-  try{
-    fetch(url, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          first_name: fname.value,
-          last_name: lname.value,
-          email: email.value,
-          password: password.value,
-        }),
-      });
-  }
-  catch (error){
-    console.error(error);
-  }
+  fetch('http://192.168.1.245:3333/api/1.0.0/user', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+
+    body: JSON.stringify({
+      first_name: fname,
+      flast_name: lname,
+      email: email,
+      password: password,
+    }),
+  })
+    .then((response) => response.json())
+    .then((responseJson) => {
+      //Showing response message coming from server 
+      console.log(responseJson);
+    })
+    .catch((error) => {
+    //display error message
+     console.warn(error);
+    });
 
 };
 
 function SettingsScreen() {
-  console.log("Settings")
+  console.debug("Settings")
   const { isDarkMode, setIsDarkMode, currentStyles } = useContext(ThemeContext);
 
   const toggleDarkMode = () => {
@@ -238,7 +315,7 @@ const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
 function HomeTabs() {
-  console.log("HomeTabs")
+  console.debug("HomeTabs")
   return (
     <Tab.Navigator
       screenOptions={{
@@ -253,8 +330,8 @@ function HomeTabs() {
       }}
     >
       <Tab.Screen
-        name="Login"
-        component={LoginScreen}
+        name="HomeScreen"
+        component={HomeScreen}
         options={{
           tabBarIcon: ({ color }) => (
             <View>
@@ -285,11 +362,11 @@ function HomeTabs() {
 }
 
 function App() {
-  console.log("App")
+  console.debug("App")
   return (
     <ThemeProvider>
       <NavigationContainer theme={theme}>
-        <Stack.Navigator initialRouteName="Home">
+        <Stack.Navigator initialRouteName="Login">
         <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Register" component={RegisterScreen} />
           <Stack.Screen

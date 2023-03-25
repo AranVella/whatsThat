@@ -521,6 +521,13 @@ const darkStyles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: 50,
   },
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: '#1c1c1c',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 300,
+  },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -607,6 +614,13 @@ const lightStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 50,
+  },
+  scrollContainer: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 300,
   },
   titleContainer: {
     flexDirection: 'row',

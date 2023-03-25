@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, component } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import { useAsync } from 'react-async';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -26,21 +27,6 @@ const theme = {
     border: '#4CAF50',
     notification: '#4CAF50',
   },
-};
-
-const getToken = async () => {
-  try {
-    const token = await AsyncStorage.getItem('x-authorization');
-    if (token !== null) {
-      console.log('Token:', token);
-      return token;
-      // Use the token as needed
-    } else {
-      console.log('Token not found');
-    }
-  } catch (error) {
-    console.warn('Error getting token:', error);
-  }
 };
 
 function ThemeProvider({ children }) {
@@ -93,6 +79,9 @@ function LoginScreen({ navigation }) {
       // Store the token in AsyncStorage
       try {
         await AsyncStorage.setItem('x-authorization', responseJson.token);
+        await AsyncStorage.setItem('id', JSON.stringify(responseJson.id));
+        const id = await AsyncStorage.getItem('id');
+        console.log("Setting ID at login. Value = " , id);
         navigation.navigate('HomeTabs');
       } catch (error) {
         console.warn('Error saving token:', error);
@@ -254,7 +243,27 @@ function RegisterScreen ({navigation}) {
 function ChatsScreen() {
   console.debug("ChatScreen")
   const { currentStyles } = useContext(ThemeContext);
+  const [id, setID] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const data = await AsyncStorage.getItem('id');
+      setID(data);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
+  console.log("Chatscreen id: ", id);
+
+  if(loading) return (
+    <Text style={currentStyles.text}>Loading</Text>
+  );
+  if (!id) return (
+    <Text style={currentStyles.text}>Data not available</Text>
+  );
   return (
       <View style={currentStyles.container}>
         <View style={currentStyles.titleContainer}>
@@ -262,6 +271,7 @@ function ChatsScreen() {
           <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
         </View>
         <Text style={currentStyles.text}>You are logged in</Text>
+        <Text style={currentStyles.text}> User ID: {id}</Text>
       </View>
   );
 };
@@ -281,6 +291,41 @@ function ContactsScreen() {
   );
 };
 
+function ProfileScreen({ route }) {
+  console.debug("ProfileScreen")
+  const { currentStyles } = useContext(ThemeContext);
+  const tempJson = route.params;
+  const { json } = tempJson;
+  const { user_id, first_name, last_name, email } = json;
+  
+  return (
+      <View style={currentStyles.container}>
+        <View style={currentStyles.titleContainer}>
+          <Text style={currentStyles.whatsThat}>whatsThat</Text>
+          <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+        </View>
+        <View style={currentStyles.profileContainer}>
+        <View style={currentStyles.userInfo}>
+          <Text style={currentStyles.text}>User ID:</Text>
+          <Text style={currentStyles.text}>{user_id}</Text>
+        </View>
+        <View style={currentStyles.userInfo}>
+          <Text style={currentStyles.text}>First Name:</Text>
+          <Text style={currentStyles.text}>{first_name}</Text>
+        </View>
+        <View style={currentStyles.userInfo}>
+          <Text style={currentStyles.text}>Last Name:</Text>
+          <Text style={currentStyles.text}>{last_name}</Text>
+        </View>
+        <View style={currentStyles.userInfo}>
+          <Text style={currentStyles.text}>Email:</Text>
+          <Text style={currentStyles.text}>{email}</Text>
+        </View>
+      </View>
+    </View>
+  );
+};
+
 function SettingsScreen({ navigation }) {
   console.debug("Settings")
   const { isDarkMode, setIsDarkMode, currentStyles } = useContext(ThemeContext);
@@ -289,9 +334,48 @@ function SettingsScreen({ navigation }) {
     setIsDarkMode(!isDarkMode);
   };
 
+  const [id, setID] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const data = await AsyncStorage.getItem('id');
+      setID(data);
+      setLoading(false);
+    }
+    fetchData();
+  }, []);
+
+  console.log("SettingsScreen id: ", id);
+
+  const getProfile = async(id) => {
+    console.debug("getProfile")
+    console.debug("ID: " + id);
+
+    const token = await AsyncStorage.getItem('x-authorization');
+
+    try {
+      const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Authorization': token,
+        },
+      });
+      const json = await response.json();
+      console.log(json);
+      navigation.navigate('Profile', {json});
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  
+  };
+
   const handleLogout = async() => {
   
-    const token = await getToken();
+    const token = await AsyncStorage.getItem('x-authorization');
   
     console.log('Token for logout:', token);
   
@@ -316,6 +400,12 @@ function SettingsScreen({ navigation }) {
   
   };
 
+  if(loading) return (
+    <Text style={currentStyles.text}>Loading</Text>
+  );
+  if (!id) return (
+    <Text style={currentStyles.text}>Data not available</Text>
+  );
   return (
     <View style={currentStyles.container}>
       <View style={currentStyles.titleContainer}>
@@ -324,10 +414,13 @@ function SettingsScreen({ navigation }) {
       </View>
       <Pressable  style={currentStyles.btn}  
       onPress={toggleDarkMode}>
-        <Text>{isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</Text>
+        <Text style={currentStyles.btnText}>{isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</Text>
+        </Pressable>
+        <Pressable style={currentStyles.btn} onPress={() => getProfile(id)}>
+          <Text style={currentStyles.btnText}>My Profile</Text>
         </Pressable>
         <Pressable style={currentStyles.btn} onPress={() => handleLogout()}>
-          <Text>Log out</Text>
+          <Text style={currentStyles.btnText}>Log out</Text>
         </Pressable>
     </View>
   );
@@ -410,6 +503,7 @@ function App() {
             component={HomeTabs}
             options={{ headerShown: false }}
           />
+          <Stack.Screen name="Profile" component={ProfileScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>
@@ -492,6 +586,17 @@ const darkStyles = StyleSheet.create({
     fontSize: 16,
     marginRight: 10,
   },
+  profileContainer: {
+    flex: 1,
+    backgroundColor: '#1c1c1c',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
 })
 
 
@@ -567,5 +672,16 @@ const lightStyles = StyleSheet.create({
     color: '#1c1c1c',
     fontSize: 16,
     marginRight: 10,
+  },
+  profileContainer: {
+    flex: 1,
+    backgroundColor: '#F5F5F5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 16,
+  },
+  userInfo: {
+    flexDirection: 'row',
+    marginBottom: 10,
   },
 })

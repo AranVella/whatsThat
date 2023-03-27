@@ -291,7 +291,7 @@ function ContactsScreen() {
   );
 };
 
-function ProfileScreen({ route }) {
+function ProfileScreen({ route , navigation }) {
   console.debug("ProfileScreen")
   const { currentStyles } = useContext(ThemeContext);
   const tempJson = route.params;
@@ -305,24 +305,139 @@ function ProfileScreen({ route }) {
           <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
         </View>
         <View style={currentStyles.profileContainer}>
-        <View style={currentStyles.userInfo}>
-          <Text style={currentStyles.text}>User ID:</Text>
-          <Text style={currentStyles.text}>{user_id}</Text>
+          <Image style={currentStyles.image} source={require('./assets/profile.png')} />
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>User ID:</Text>
+            <Text style={currentStyles.text}>{user_id}</Text>
+          </View>
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>First Name:</Text>
+            <Text style={currentStyles.text}>{first_name}</Text>
+          </View>
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>Last Name:</Text>
+            <Text style={currentStyles.text}>{last_name}</Text>
+          </View>
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>Email:</Text>
+            <Text style={currentStyles.text}>{email}</Text>
+          </View>
         </View>
-        <View style={currentStyles.userInfo}>
-          <Text style={currentStyles.text}>First Name:</Text>
-          <Text style={currentStyles.text}>{first_name}</Text>
-        </View>
-        <View style={currentStyles.userInfo}>
-          <Text style={currentStyles.text}>Last Name:</Text>
-          <Text style={currentStyles.text}>{last_name}</Text>
-        </View>
-        <View style={currentStyles.userInfo}>
-          <Text style={currentStyles.text}>Email:</Text>
-          <Text style={currentStyles.text}>{email}</Text>
-        </View>
+        <View style={currentStyles.container}>
+        <Pressable style={currentStyles.btn} onPress={() => navigation.navigate('Edit Profile', {json})}>
+          <Text style={currentStyles.btnText}>Edit details</Text>
+        </Pressable>
+        <Pressable style={currentStyles.btn} onPress={() => console.log("Upload profile pic")}>
+          <Text style={currentStyles.btnText}>Upload profile picture</Text>
+        </Pressable>
       </View>
     </View>
+  );
+};
+
+function EditProfileScreen({ route, navigation }) {
+  console.debug("EditProfileScreen")
+  const { currentStyles } = useContext(ThemeContext);
+  const tempJson = route.params;
+  const { json } = tempJson;
+  const { user_id, first_name, last_name, email } = json;
+
+  const [inputEmail, setInputEmail] = useState(email);
+  const [inputFname, setInputFname] = useState(first_name);
+  const [inputLname, setInputLname] = useState(last_name);
+  const [inputPassword, setInputPassword] = useState('');
+
+  const editProfile = async(id, fname, lname, email, password) => {
+    console.debug("editProfile")
+    console.debug("ID: " + id);
+    console.debug("editProfile")
+    console.debug("First name: " + fname);
+    console.debug("Last name: " + lname);
+    console.debug("Email: " + email);
+    console.debug("Password: " + password);
+
+    const token = await AsyncStorage.getItem('x-authorization');
+
+    fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}`, {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Authorization': token,
+      },
+  
+      body: JSON.stringify({
+        first_name: fname,
+        last_name: lname,
+        email: email,
+        password: password,
+      }),
+    })
+    .then((response) => {
+      if (response.status == 200) {
+        Alert.alert('Alert', 'Details Changed Successfully', 
+        {text: 'OK'});
+        navigation.navigate("Settings")
+      } else {
+        throw new Error('Server response not OK - ' + response.status);
+      }
+    })
+    .catch((error) => {
+      console.warn(error);
+    });
+  }
+  
+  return (
+      <View style={currentStyles.container}>
+         <View style={currentStyles.titleContainer}>
+          <Text style={currentStyles.whatsThat}>whatsThat</Text>
+          <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+        </View>
+        <View style={currentStyles.profileContainer}>
+          <View style={currentStyles.inputContainer}>
+          <TextInput
+            style={currentStyles.input}
+            placeholder={inputEmail}
+            placeholderTextColor="#c4c4c4"
+            value={inputEmail}
+            onChangeText={setInputEmail}
+          />
+          </View>
+          <View style={currentStyles.inputContainer}>
+          <TextInput
+            style={currentStyles.input}
+            placeholder={inputFname}
+            placeholderTextColor="#c4c4c4"
+            value={inputFname}
+            onChangeText={setInputFname}
+          />
+          </View>
+          <View style={currentStyles.inputContainer}>
+          <TextInput
+            style={currentStyles.input}
+            placeholder={inputLname}
+            placeholderTextColor="#c4c4c4"
+            value={inputLname}
+            onChangeText={setInputLname}
+          />
+          </View>
+          <View style={currentStyles.inputContainer}>
+        <TextInput
+          secureTextEntry={true}
+          style={currentStyles.input}
+          placeholder=""
+          placeholderTextColor="#c4c4c4"
+          value={inputPassword}
+          onChangeText={setInputPassword}
+        /> 
+      </View>
+        </View>
+        <View style={currentStyles.container}>
+        <Pressable style={currentStyles.btn} onPress={() => editProfile(user_id, inputFname, inputLname, inputEmail, inputPassword)}>
+          <Text style={currentStyles.btnText}>Confirm</Text>
+        </Pressable>
+        </View>
+      </View>
   );
 };
 
@@ -504,6 +619,7 @@ function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="Profile" component={ProfileScreen} />
+          <Stack.Screen name="Edit Profile" component={EditProfileScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>
@@ -593,6 +709,12 @@ const darkStyles = StyleSheet.create({
     fontSize: 16,
     marginRight: 10,
   },
+  titleText: {
+    color: '#F5F5F5',
+    fontWeight: 'bold',
+    fontSize: 20,
+    marginRight: 10,
+  },
   profileContainer: {
     flex: 1,
     backgroundColor: '#1c1c1c',
@@ -604,13 +726,17 @@ const darkStyles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 10,
   },
+  image: {
+    marginBottom: 10,
+    width: 144,
+    height: 144,
+  },
 })
 
 
 const lightStyles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F5F5F5',
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 50,
@@ -637,7 +763,7 @@ const lightStyles = StyleSheet.create({
     marginHorizontal: 20,
     paddingHorizontal: 20,
     borderRadius: 10,
-    backgroundColor: '#008000',
+    backgroundColor: '#3c3c3c',
     shadowColor: '#000000',
     shadowOpacity: 0.2,
     shadowRadius: 10,
@@ -649,7 +775,7 @@ const lightStyles = StyleSheet.create({
     height: 50,
     marginRight: 20,
     paddingHorizontal: 10,
-    color: '#1c1c1c',
+    color: '#F5F5F5',
   },
   btn: {
     backgroundColor: '#4CAF50',
@@ -687,6 +813,12 @@ const lightStyles = StyleSheet.create({
     fontSize: 16,
     marginRight: 10,
   },
+  titleText: {
+    color: '#1c1c1c',
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginRight: 10,
+  },
   profileContainer: {
     flex: 1,
     backgroundColor: '#F5F5F5',
@@ -697,5 +829,10 @@ const lightStyles = StyleSheet.create({
   userInfo: {
     flexDirection: 'row',
     marginBottom: 10,
+  },
+  image: {
+    marginBottom: 10,
+    width: 144,
+    height: 144,
   },
 })

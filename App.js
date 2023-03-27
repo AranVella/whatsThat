@@ -46,6 +46,7 @@ function LoginScreen({ navigation }) {
   const [inputEmail, setInputEmail] = useState('');
   const [inputPassword, setInputPassword] = useState('');
   const { currentStyles } = useContext(ThemeContext);
+  const [message, setMessage] = useState('');
 
   const handleLogin = (email, password) => {
     console.debug("handleLogin")
@@ -72,29 +73,26 @@ function LoginScreen({ navigation }) {
       password: password,
     }),
   })
-    .then((response) => response.json())
-    .then(async (responseJson) => {
-      console.log(responseJson);
-
-      // Store the token in AsyncStorage
-      try {
-        await AsyncStorage.setItem('x-authorization', responseJson.token);
-        await AsyncStorage.setItem('id', JSON.stringify(responseJson.id));
-        const id = await AsyncStorage.getItem('id');
-        console.log("Setting ID at login. Value = " , id);
-        navigation.navigate('HomeTabs');
-      } catch (error) {
-        console.warn('Error saving token:', error);
-      }
-
-      
-    })
-    .catch((error) => {
-      console.warn(error);
-    });
-  
-  };
-
+  .then(async(response) => {
+    if (response.status == 200) {
+      await AsyncStorage.setItem('x-authorization', responseJson.token);
+      await AsyncStorage.setItem('id', JSON.stringify(responseJson.id));
+      const id = await AsyncStorage.getItem('id');
+      console.log("Setting ID at login. Value = " , id);
+      navigation.navigate('HomeTabs');
+    }
+    else if (response.status == 400) {
+      console.log("Login details not recognised");
+      setMessage(`Login details not recognised`);
+    }
+    else {
+      throw new Error('Server response not OK - ' + response.status); 
+    }
+  })
+  .catch((error) => {
+    console.warn(error);
+  });
+}
   return (
     <ScrollView contentContainerStyle={currentStyles.scrollContainer} keyboardShouldPersistTaps="handled">
     <View style={currentStyles.container}>
@@ -121,6 +119,11 @@ function LoginScreen({ navigation }) {
           onChangeText={setInputPassword}
         /> 
       </View>
+      {message && (
+  <View style={currentStyles.errorMessageContainer}>
+    <Text style={currentStyles.errorMessage}>{message}</Text>
+  </View>
+)}
       <Pressable  style={currentStyles.btn}  
       onPress={() => handleLogin(inputEmail, inputPassword)}>
         <Text style={currentStyles.btnText} >Login</Text>
@@ -141,6 +144,7 @@ function RegisterScreen ({navigation}) {
   const [inputFname, setInputFname] = useState('');
   const [inputLname, setInputLname] = useState('');
   const { currentStyles } = useContext(ThemeContext);
+  const [message, setMessage] = useState('');
 
   const handleRegister = (fname, lname, email, password) => {
     console.debug("handleRegister")
@@ -171,20 +175,24 @@ function RegisterScreen ({navigation}) {
         password: password,
       }),
     })
-      .then((response) => response.json())
-      .then((responseJson) => {
-        //Showing response message coming from server 
+    .then(async(response) => {
+      if (response.status == 200) {
         console.log(responseJson);
         Alert.alert('Alert', 'Registration Successful', 
         {text: 'OK'});
         navigation.navigate('Login');
-  
-      })
-      .catch((error) => {
-      //display error message
-       console.warn(error);
-      });
-  
+      }
+      else if (response.status == 400) {
+        console.log("Registration error - details not valid");
+        setMessage(`Error - Email must be valid and password must be greater than 8 characters (including: one uppercase, one number and one special)`);
+      }
+      else {
+        throw new Error('Server response not OK - ' + response.status); 
+      }
+    })
+    .catch((error) => {
+      console.warn(error);
+    })
   };
   
 
@@ -236,6 +244,11 @@ function RegisterScreen ({navigation}) {
           <Text style={currentStyles.btnText}>Register</Text>
         </Pressable>
       </View>
+      {message && (
+  <View style={currentStyles.errorMessageContainer}>
+    <Text style={currentStyles.errorMessage}>{message}</Text>
+  </View>
+)}
     </ScrollView>
   );
 };
@@ -346,6 +359,7 @@ function EditProfileScreen({ route, navigation }) {
   const [inputFname, setInputFname] = useState(first_name);
   const [inputLname, setInputLname] = useState(last_name);
   const [inputPassword, setInputPassword] = useState('');
+  const [message, setMessage] = useState(null);
 
   const editProfile = async(id, fname, lname, email, password) => {
     console.debug("editProfile")
@@ -379,7 +393,9 @@ function EditProfileScreen({ route, navigation }) {
         {text: 'OK'});
         navigation.navigate("Settings")
       } else {
+        setMessage(`Error: Email must be valid and password must be greater than 8 characters (including: one uppercase, one number and one special)`);
         throw new Error('Server response not OK - ' + response.status);
+        
       }
     })
     .catch((error) => {
@@ -425,12 +441,17 @@ function EditProfileScreen({ route, navigation }) {
         <TextInput
           secureTextEntry={true}
           style={currentStyles.input}
-          placeholder=""
+          placeholder="Password"
           placeholderTextColor="#c4c4c4"
           value={inputPassword}
           onChangeText={setInputPassword}
         /> 
       </View>
+      {message && (
+  <View style={currentStyles.errorMessageContainer}>
+    <Text style={currentStyles.errorMessage}>{message}</Text>
+  </View>
+)}
         </View>
         <View style={currentStyles.container}>
         <Pressable style={currentStyles.btn} onPress={() => editProfile(user_id, inputFname, inputLname, inputEmail, inputPassword)}>
@@ -731,6 +752,15 @@ const darkStyles = StyleSheet.create({
     width: 144,
     height: 144,
   },
+  errorMessageContainer: {
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorMessage: {
+    color: 'red',
+    fontSize: 16,
+  },
 })
 
 
@@ -834,5 +864,14 @@ const lightStyles = StyleSheet.create({
     marginBottom: 10,
     width: 144,
     height: 144,
+  },
+  errorMessageContainer: {
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  errorMessage: {
+    color: 'red',
+    fontSize: 16,
   },
 })

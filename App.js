@@ -74,7 +74,9 @@ function LoginScreen({ navigation }) {
     }),
   })
   .then(async(response) => {
+    
     if (response.status == 200) {
+      const responseJson = await response.json();
       await AsyncStorage.setItem('x-authorization', responseJson.token);
       await AsyncStorage.setItem('id', JSON.stringify(responseJson.id));
       const id = await AsyncStorage.getItem('id');
@@ -177,7 +179,6 @@ function RegisterScreen ({navigation}) {
     })
     .then(async(response) => {
       if (response.status == 200) {
-        console.log(responseJson);
         Alert.alert('Alert', 'Registration Successful', 
         {text: 'OK'});
         navigation.navigate('Login');

@@ -11,6 +11,7 @@ import {
   FlatList,
   TouchableOpacity,
 } from 'react-native';
+import { SearchBar } from "react-native-elements";
 import * as ImagePicker from 'expo-image-picker';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -403,6 +404,29 @@ const getContacts = async({ navigation }) => {
 
 };
 
+const searchContacts = async({ navigation }, string) => {
+  console.debug("searchUsers")
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  try {
+    const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/search?q=${string}&search_in=contacts&limit=20&offset=0`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Authorization': token,
+      },
+    });
+
+    const json = await response.json();
+    console.log('Users: ', json);
+    navigation.navigate('Search Results', {json})
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+
+};
+
 function ContactsScreen({ navigation }) {
   console.debug("ContactsScreen")
   const { currentStyles } = useContext(ThemeContext);
@@ -416,7 +440,7 @@ function ContactsScreen({ navigation }) {
       <Pressable style={currentStyles.btn} onPress={() => getContacts({ navigation })}>
         <Text style={currentStyles.btnText}>My Contacts</Text>
       </Pressable>
-      <Pressable style={currentStyles.btn} onPress={() => console.log('Add New Contact')}>
+      <Pressable style={currentStyles.btn} onPress={() => searchUsers({ navigation })}>
         <Text style={currentStyles.btnText}>Add New Contact</Text>
       </Pressable>
   </View>
@@ -428,6 +452,7 @@ function MyContactsScreen({ navigation, route }) {
   const { currentStyles } = useContext(ThemeContext);
   const {json} = route.params;
   console.debug("json: " + json);
+  const [searchTerm, setSearchTerm] = useState('');
   
   const renderItem = ({ item }) => (
     <ContactList navigation={navigation} title={item.first_name + ' ' + item.last_name} id={item.user_id}/>
@@ -435,8 +460,41 @@ function MyContactsScreen({ navigation, route }) {
 
   return (
     <View style={currentStyles.container}>
+      <View style={currentStyles.searchBarContainer}>
+        <TextInput
+          style={currentStyles.searchBarInput}
+          placeholder="Search contacts"
+          value={searchTerm}
+          onChangeText={setSearchTerm}
+        />
+         <Pressable style={currentStyles.btn}onPress={() => searchContacts({ navigation }, searchTerm)}>
+          <Text style={currentStyles.btnText}>Search</Text>
+        </Pressable>
+      </View>
       <FlatList
-        data={json}
+        data={route.params.json}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.user_id.toString()}
+        style={currentStyles.list}
+      />
+    </View>
+  );
+};
+
+function SearchResultsScreen({ navigation, route }) {
+  console.debug("MyContactsScreen")
+  const { currentStyles } = useContext(ThemeContext);
+  const {json} = route.params;
+  console.debug("json: " + json);
+  
+  const renderItem = ({ item }) => (
+    <ContactList navigation={navigation} title={item.given_name + ' ' + item.family_name} id={item.user_id}/>
+  );
+
+  return (
+    <View style={currentStyles.container}>
+      <FlatList
+        data={route.params.json}
         renderItem={renderItem}
         keyExtractor={(item) => item.user_id.toString()}
         style={currentStyles.list}
@@ -809,12 +867,12 @@ function App() {
           <Stack.Screen name="Contact" component={ContactScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="Edit Profile" component={EditProfileScreen} />
+          <Stack.Screen name="Search Results" component={SearchResultsScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>
   );
 }
-
 
 export default App;
 
@@ -1080,5 +1138,29 @@ const lightStyles = StyleSheet.create({
     flex: 1,
     width: '100%',
     paddingHorizontal: 20,
+  },container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 50,
+  },
+  list: {
+    width: '100%',
+    paddingHorizontal: 10,
+  },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+  },
+  searchBarInput: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderColor: 'gray',
+    marginRight: 10,
+    paddingHorizontal: 10,
   },
 })

@@ -8,8 +8,10 @@ import {
   Pressable,
   ScrollView,
   Alert,
+  FlatList,
+  TouchableOpacity,
 } from 'react-native';
-import { useAsync } from 'react-async';
+import * as ImagePicker from 'expo-image-picker';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -39,6 +41,94 @@ function ThemeProvider({ children }) {
       {children}
     </ThemeContext.Provider>
   );
+}
+
+
+const ContactList = ({ navigation, title, id }) => {
+  const { currentStyles } = useContext(ThemeContext);
+  console.log('title: ', title);
+  console.log('id: ', id);
+  return (
+    <View style={currentStyles.lstItem}>
+      <Text style={currentStyles.titleText}>{title}</Text>
+      <TouchableOpacity style={currentStyles.btn} onPress={() => getProfile({ navigation }, id, 'Contact')}>
+        <Text style={currentStyles.btnText}>View</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
+const getProfile = async({ navigation }, id, screen) => {
+  console.debug("getProfile")
+  console.debug("ID: " + id);
+  console.debug("screen: " + screen);
+
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  try {
+    const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Authorization': token,
+      },
+    });
+    const profilePic = await fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}/photo`, {
+      method: 'GET', 
+      headers: {
+        'Content-Type': 'image/png',
+        'X-Authorization': token,
+      },
+    });
+
+    //console.log("profilePic: ", profilePic);
+    const imageBlob = await profilePic.blob();
+    const imageObjectURL = URL.createObjectURL(imageBlob);
+    console.log("imageObjectURL: ", imageObjectURL);
+
+    const json = await response.json();
+    console.log(json);
+    navigation.navigate(screen, {json: json, image: imageObjectURL});
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+
+};
+
+const deleteContact = async({ navigation }, id) => {
+  console.debug("deleteContact")
+  console.debug("ID: " + id);
+
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}/contact`, {
+    method: 'DELETE',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Authorization': token,
+    },
+  })
+  .then(async(response) => {
+    
+    if (response.status == 200) {
+      Alert.alert('Alert', 'Contact Deleted', 
+        {text: 'OK'});
+      getContacts({ navigation })
+    }
+    else if (response.status == 400) {
+      Alert.alert('Alert', 'Error whilst deleting', 
+        {text: 'OK'});
+      getContacts({ navigation })
+    }
+    else {
+      throw new Error('Server response not OK - ' + response.status); 
+    }
+  })
+  .catch((error) => {
+    console.warn(error);
+  });
 }
 
 function LoginScreen({ navigation }) {
@@ -81,6 +171,7 @@ function LoginScreen({ navigation }) {
       await AsyncStorage.setItem('id', JSON.stringify(responseJson.id));
       const id = await AsyncStorage.getItem('id');
       console.log("Setting ID at login. Value = " , id);
+      console.log("Auth Token. Value = " , responseJson.token);
       navigation.navigate('HomeTabs');
     }
     else if (response.status == 400) {
@@ -195,7 +286,6 @@ function RegisterScreen ({navigation}) {
       console.warn(error);
     })
   };
-  
 
   return (
     <ScrollView contentContainerStyle={currentStyles.scrollContainer} keyboardShouldPersistTaps="handled">
@@ -290,26 +380,77 @@ function ChatsScreen() {
   );
 };
 
-function ContactsScreen() {
+const getContacts = async({ navigation }) => {
+  console.debug("getContacts")
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  try {
+    const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/contacts`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Authorization': token,
+      },
+    });
+
+    const json = await response.json();
+    console.log('Contacts: ', json);
+    navigation.navigate('My Contacts', {json})
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+
+};
+
+function ContactsScreen({ navigation }) {
   console.debug("ContactsScreen")
   const { currentStyles } = useContext(ThemeContext);
 
   return (
-      <View style={currentStyles.container}>
-        <View style={currentStyles.titleContainer}>
-          <Text style={currentStyles.whatsThat}>whatsThat</Text>
-          <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
-        </View>
-        <Text style={currentStyles.text}>You are logged in</Text>
-      </View>
+    <View style={currentStyles.container}>
+    <View style={currentStyles.titleContainer}>
+      <Text style={currentStyles.whatsThat}>whatsThat</Text>
+      <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+    </View>
+      <Pressable style={currentStyles.btn} onPress={() => getContacts({ navigation })}>
+        <Text style={currentStyles.btnText}>My Contacts</Text>
+      </Pressable>
+      <Pressable style={currentStyles.btn} onPress={() => console.log('Add New Contact')}>
+        <Text style={currentStyles.btnText}>Add New Contact</Text>
+      </Pressable>
+  </View>
   );
 };
 
-function ProfileScreen({ route , navigation }) {
-  console.debug("ProfileScreen")
+function MyContactsScreen({ navigation, route }) {
+  console.debug("MyContactsScreen")
   const { currentStyles } = useContext(ThemeContext);
-  const tempJson = route.params;
-  const { json } = tempJson;
+  const {json} = route.params;
+  console.debug("json: " + json);
+  
+  const renderItem = ({ item }) => (
+    <ContactList navigation={navigation} title={item.first_name + ' ' + item.last_name} id={item.user_id}/>
+  );
+
+  return (
+    <View style={currentStyles.container}>
+      <FlatList
+        data={json}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.user_id.toString()}
+        style={currentStyles.list}
+      />
+    </View>
+  );
+};
+
+function ContactScreen({ route , navigation }) {
+  console.debug("ContactScreen")
+  const { currentStyles } = useContext(ThemeContext);
+  const {json, image} = route.params;
+  console.debug("json: " + json);
+  console.debug("image: " + image);
   const { user_id, first_name, last_name, email } = json;
   
   return (
@@ -319,7 +460,54 @@ function ProfileScreen({ route , navigation }) {
           <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
         </View>
         <View style={currentStyles.profileContainer}>
-          <Image style={currentStyles.image} source={require('./assets/profile.png')} />
+        <Image source={{ uri: image }} style={currentStyles.image} />
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>User ID:</Text>
+            <Text style={currentStyles.text}>{user_id}</Text>
+          </View>
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>First Name:</Text>
+            <Text style={currentStyles.text}>{first_name}</Text>
+          </View>
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>Last Name:</Text>
+            <Text style={currentStyles.text}>{last_name}</Text>
+          </View>
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>Email:</Text>
+            <Text style={currentStyles.text}>{email}</Text>
+          </View>
+        </View>
+        <View style={currentStyles.container}>
+        <Pressable style={currentStyles.btn} onPress={() => deleteContact({ navigation }, user_id)}>
+          <Text style={currentStyles.btnText}>Delete Contact</Text>
+        </Pressable>
+        <Pressable style={currentStyles.btn} onPress={() => blockContact(user_id)}>
+          <Text style={currentStyles.btnText}>Block Contact</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+};
+
+function ProfileScreen({ route , navigation }) {
+  console.debug("ProfileScreen")
+  const { currentStyles } = useContext(ThemeContext);
+  const {json, image} = route.params;
+  console.debug("json: " + json);
+  console.debug("image: " + image);
+  const { user_id, first_name, last_name, email } = json;
+  
+  const uploadProfilePic = async (id) => {console.log("uploadProfilePic");}
+
+  return (
+      <View style={currentStyles.container}>
+        <View style={currentStyles.titleContainer}>
+          <Text style={currentStyles.whatsThat}>whatsThat</Text>
+          <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+        </View>
+        <View style={currentStyles.profileContainer}>
+        <Image source={{ uri: image }} style={currentStyles.image} />
           <View style={currentStyles.userInfo}>
             <Text style={currentStyles.titleText}>User ID:</Text>
             <Text style={currentStyles.text}>{user_id}</Text>
@@ -341,7 +529,7 @@ function ProfileScreen({ route , navigation }) {
         <Pressable style={currentStyles.btn} onPress={() => navigation.navigate('Edit Profile', {json})}>
           <Text style={currentStyles.btnText}>Edit details</Text>
         </Pressable>
-        <Pressable style={currentStyles.btn} onPress={() => console.log("Upload profile pic")}>
+        <Pressable style={currentStyles.btn} onPress={() => uploadProfilePic(user_id)}>
           <Text style={currentStyles.btnText}>Upload profile picture</Text>
         </Pressable>
       </View>
@@ -486,30 +674,6 @@ function SettingsScreen({ navigation }) {
 
   console.log("SettingsScreen id: ", id);
 
-  const getProfile = async(id) => {
-    console.debug("getProfile")
-    console.debug("ID: " + id);
-
-    const token = await AsyncStorage.getItem('x-authorization');
-
-    try {
-      const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}`, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Authorization': token,
-        },
-      });
-      const json = await response.json();
-      console.log(json);
-      navigation.navigate('Profile', {json});
-
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    }
-  
-  };
-
   const handleLogout = async() => {
   
     const token = await AsyncStorage.getItem('x-authorization');
@@ -553,7 +717,7 @@ function SettingsScreen({ navigation }) {
       onPress={toggleDarkMode}>
         <Text style={currentStyles.btnText}>{isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}</Text>
         </Pressable>
-        <Pressable style={currentStyles.btn} onPress={() => getProfile(id)}>
+        <Pressable style={currentStyles.btn} onPress={() =>  getProfile({ navigation }, id, 'Profile')}>
           <Text style={currentStyles.btnText}>My Profile</Text>
         </Pressable>
         <Pressable style={currentStyles.btn} onPress={() => handleLogout()}>
@@ -570,6 +734,7 @@ function HomeTabs() {
   console.debug("HomeTabs")
   return (
     <Tab.Navigator
+    initialRouteName="Chats"
       screenOptions={{
         "tabBarActiveTintColor": "white",
         "tabBarInactiveTintColor": "#3c3c3c",
@@ -582,20 +747,6 @@ function HomeTabs() {
       }}
     >
       <Tab.Screen
-        name="Chats"
-        component={ChatsScreen}
-        options={{
-          tabBarIcon: ({ color }) => (
-            <View>
-              <Image
-                source={require('./assets/chat.png')}
-                style={{ tintColor: color }}
-              />
-            </View>
-          ),
-        }}
-      />
-      <Tab.Screen
         name="Contacts"
         component={ContactsScreen}
         options={{
@@ -603,6 +754,20 @@ function HomeTabs() {
             <View>
               <Image
                 source={require('./assets/contacts.png')}
+                style={{ tintColor: color }}
+              />
+            </View>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Chats"
+        component={ChatsScreen}
+        options={{
+          tabBarIcon: ({ color }) => (
+            <View>
+              <Image
+                source={require('./assets/chat.png')}
                 style={{ tintColor: color }}
               />
             </View>
@@ -640,6 +805,8 @@ function App() {
             component={HomeTabs}
             options={{ headerShown: false }}
           />
+          <Stack.Screen name="My Contacts" component={MyContactsScreen} />
+          <Stack.Screen name="Contact" component={ContactScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="Edit Profile" component={EditProfileScreen} />
         </Stack.Navigator>
@@ -658,6 +825,13 @@ const darkStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 50,
+  },
+  input: {
+    flex: 1,
+    height: 50,
+    marginRight: 20,
+    paddingHorizontal: 10,
+    color: '#1c1c1c',
   },
   scrollContainer: {
     flex: 1,
@@ -762,6 +936,19 @@ const darkStyles = StyleSheet.create({
     color: 'red',
     fontSize: 16,
   },
+  lstItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  list: {
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: 20,
+  },
 })
 
 
@@ -771,6 +958,13 @@ const lightStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 50,
+  },
+  input: {
+    flex: 1,
+    height: 50,
+    marginRight: 20,
+    paddingHorizontal: 10,
+    color: '#F5F5F5',
   },
   scrollContainer: {
     flex: 1,
@@ -874,5 +1068,17 @@ const lightStyles = StyleSheet.create({
   errorMessage: {
     color: 'red',
     fontSize: 16,
+  },
+  lstItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e5e5',
+  },
+  list: {
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: 20,
   },
 })

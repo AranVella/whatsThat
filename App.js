@@ -133,10 +133,12 @@ const deleteContact = async({ navigation }, id) => {
 }
 
 function LoginScreen({ navigation }) {
+
+  const { isDarkMode, currentStyles } = useContext(ThemeContext);
+
   console.debug("LoginScreen")
   const [inputEmail, setInputEmail] = useState('');
   const [inputPassword, setInputPassword] = useState('');
-  const { currentStyles } = useContext(ThemeContext);
   const [message, setMessage] = useState('');
 
   const handleLogin = (email, password) => {
@@ -198,7 +200,7 @@ function LoginScreen({ navigation }) {
         <TextInput
           style={currentStyles.input}
           placeholder="Email"
-          placeholderTextColor="#c4c4c4"
+          placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
           value={inputEmail}
           onChangeText={setInputEmail}
         />
@@ -208,7 +210,7 @@ function LoginScreen({ navigation }) {
           secureTextEntry={true}
           style={currentStyles.input}
           placeholder="Password"
-          placeholderTextColor="#c4c4c4"
+          placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
           value={inputPassword}
           onChangeText={setInputPassword}
         /> 
@@ -237,7 +239,7 @@ function RegisterScreen ({navigation}) {
   const [inputPassword, setInputPassword] = useState('');
   const [inputFname, setInputFname] = useState('');
   const [inputLname, setInputLname] = useState('');
-  const { currentStyles } = useContext(ThemeContext);
+  const { isDarkMode, currentStyles } = useContext(ThemeContext);
   const [message, setMessage] = useState('');
 
   const handleRegister = (fname, lname, email, password) => {
@@ -299,7 +301,7 @@ function RegisterScreen ({navigation}) {
           <TextInput
             style={currentStyles.input}
             placeholder="First Name"
-            placeholderTextColor="#c4c4c4"
+            placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
             value={inputFname}
             onChangeText={setInputFname}
           />
@@ -308,7 +310,7 @@ function RegisterScreen ({navigation}) {
           <TextInput
             style={currentStyles.input}
             placeholder="Last Name"
-            placeholderTextColor="#c4c4c4"
+            placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
             value={inputLname}
             onChangeText={setInputLname}
           />
@@ -317,7 +319,7 @@ function RegisterScreen ({navigation}) {
           <TextInput
             style={currentStyles.input}
             placeholder="Email"
-            placeholderTextColor="#c4c4c4"
+            placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
             value={inputEmail}
             onChangeText={setInputEmail}
           />
@@ -327,7 +329,7 @@ function RegisterScreen ({navigation}) {
             secureTextEntry={true}
             style={currentStyles.input}
             placeholder="Password"
-            placeholderTextColor="#c4c4c4"
+            placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
             value={inputPassword}
             onChangeText={setInputPassword}
           /> 
@@ -449,7 +451,7 @@ function ContactsScreen({ navigation }) {
 
 function MyContactsScreen({ navigation, route }) {
   console.debug("MyContactsScreen")
-  const { currentStyles } = useContext(ThemeContext);
+  const { currentStyles, isDarkMode } = useContext(ThemeContext);
   const {json} = route.params;
   console.debug("json: " + json);
   const [searchTerm, setSearchTerm] = useState('');
@@ -462,8 +464,9 @@ function MyContactsScreen({ navigation, route }) {
     <View style={currentStyles.container}>
       <View style={currentStyles.searchBarContainer}>
         <TextInput
-          style={currentStyles.searchBarInput}
+          style={currentStyles.input}
           placeholder="Search contacts"
+          placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
           value={searchTerm}
           onChangeText={setSearchTerm}
         />
@@ -597,7 +600,7 @@ function ProfileScreen({ route , navigation }) {
 
 function EditProfileScreen({ route, navigation }) {
   console.debug("EditProfileScreen")
-  const { currentStyles } = useContext(ThemeContext);
+  const { isDarkMode, currentStyles } = useContext(ThemeContext);
   const tempJson = route.params;
   const { json } = tempJson;
   const { user_id, first_name, last_name, email } = json;
@@ -661,7 +664,7 @@ function EditProfileScreen({ route, navigation }) {
           <TextInput
             style={currentStyles.input}
             placeholder={inputEmail}
-            placeholderTextColor="#c4c4c4"
+            placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
             value={inputEmail}
             onChangeText={setInputEmail}
           />
@@ -670,7 +673,7 @@ function EditProfileScreen({ route, navigation }) {
           <TextInput
             style={currentStyles.input}
             placeholder={inputFname}
-            placeholderTextColor="#c4c4c4"
+            placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
             value={inputFname}
             onChangeText={setInputFname}
           />
@@ -679,7 +682,7 @@ function EditProfileScreen({ route, navigation }) {
           <TextInput
             style={currentStyles.input}
             placeholder={inputLname}
-            placeholderTextColor="#c4c4c4"
+            placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
             value={inputLname}
             onChangeText={setInputLname}
           />
@@ -689,7 +692,7 @@ function EditProfileScreen({ route, navigation }) {
           secureTextEntry={true}
           style={currentStyles.input}
           placeholder="Password"
-          placeholderTextColor="#c4c4c4"
+          placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
           value={inputPassword}
           onChangeText={setInputPassword}
         /> 
@@ -884,13 +887,6 @@ const darkStyles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: 50,
   },
-  input: {
-    flex: 1,
-    height: 50,
-    marginRight: 20,
-    paddingHorizontal: 10,
-    color: '#1c1c1c',
-  },
   scrollContainer: {
     flex: 1,
     backgroundColor: '#1c1c1c',
@@ -914,18 +910,18 @@ const darkStyles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 10,
     backgroundColor: '#3c3c3c',
-    shadowColor: '#000000',
+    borderColor: '#f5f5f5',
     shadowOpacity: 0.2,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 0 },
     elevation: 5,
   },
   input: {
+    color: 'white',
     flex: 1,
     height: 50,
     marginRight: 20,
     paddingHorizontal: 10,
-    color: '#F5F5F5',
   },
   btn: {
     backgroundColor: '#4CAF50',
@@ -1007,6 +1003,21 @@ const darkStyles = StyleSheet.create({
     width: '100%',
     paddingHorizontal: 20,
   },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 10,
+  },
+  searchBarInput: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderColor: 'white',
+    marginRight: 10,
+    paddingHorizontal: 10,
+  },
+  
 })
 
 
@@ -1016,13 +1027,6 @@ const lightStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 50,
-  },
-  input: {
-    flex: 1,
-    height: 50,
-    marginRight: 20,
-    paddingHorizontal: 10,
-    color: '#F5F5F5',
   },
   scrollContainer: {
     flex: 1,
@@ -1046,19 +1050,19 @@ const lightStyles = StyleSheet.create({
     marginHorizontal: 20,
     paddingHorizontal: 20,
     borderRadius: 10,
-    backgroundColor: '#3c3c3c',
-    shadowColor: '#000000',
+    backgroundColor: '#F5F5F5',
+    borderColor: '3c3c3c',
     shadowOpacity: 0.2,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 0 },
     elevation: 5,
   },
   input: {
+    color: 'black',
     flex: 1,
     height: 50,
     marginRight: 20,
     paddingHorizontal: 10,
-    color: '#F5F5F5',
   },
   btn: {
     backgroundColor: '#4CAF50',
@@ -1138,16 +1142,6 @@ const lightStyles = StyleSheet.create({
     flex: 1,
     width: '100%',
     paddingHorizontal: 20,
-  },container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 50,
-  },
-  list: {
-    width: '100%',
-    paddingHorizontal: 10,
   },
   searchBarContainer: {
     flexDirection: 'row',
@@ -1162,5 +1156,6 @@ const lightStyles = StyleSheet.create({
     borderColor: 'gray',
     marginRight: 10,
     paddingHorizontal: 10,
+    color: '#3c3c3c',
   },
 })

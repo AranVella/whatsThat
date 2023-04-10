@@ -59,6 +59,20 @@ const ContactList = ({ navigation, title, id }) => {
   );
 };
 
+const ChatList = ({ navigation, title, id }) => {
+  const { currentStyles } = useContext(ThemeContext);
+  console.log('title: ', title);
+  console.log('id: ', id);
+  return (
+    <View style={currentStyles.lstItem}>
+      <Text style={currentStyles.titleText}>{title}</Text>
+      <TouchableOpacity style={currentStyles.btn} onPress={() => getChat({ navigation }, id)}>
+        <Text style={currentStyles.btnText}>View</Text>
+      </TouchableOpacity>
+    </View>
+  );
+};
+
 const getProfile = async({ navigation }, id, screen) => {
   console.debug("getProfile")
   console.debug("ID: " + id);
@@ -98,6 +112,30 @@ const getProfile = async({ navigation }, id, screen) => {
     {
     navigation.navigate(screen, {json: json, image: imageObjectURL});
     }
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+
+};
+
+const getChat = async({ navigation }, id) => {
+  console.debug("getChat")
+  console.debug("chat ID: " + id);
+
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  try {
+    const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/chat/${id}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Authorization': token,
+      },
+    });
+    
+    const json = await response.json();
+    navigation.navigate("Chat", {json: json});
 
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -460,42 +498,6 @@ function RegisterScreen ({navigation}) {
   );
 };
 
-function ChatsScreen() {
-  console.debug("ChatScreen")
-  const { currentStyles } = useContext(ThemeContext);
-  const [id, setID] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      const data = await AsyncStorage.getItem('id');
-      setID(data);
-      setLoading(false);
-    }
-    fetchData();
-  }, []);
-
-  console.log("Chatscreen id: ", id);
-
-  if(loading) return (
-    <Text style={currentStyles.text}>Loading</Text>
-  );
-  if (!id) return (
-    <Text style={currentStyles.text}>Data not available</Text>
-  );
-  return (
-      <View style={currentStyles.container}>
-        <View style={currentStyles.titleContainer}>
-          <Text style={currentStyles.whatsThat}>whatsThat</Text>
-          <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
-        </View>
-        <Text style={currentStyles.text}>You are logged in</Text>
-        <Text style={currentStyles.text}> User ID: {id}</Text>
-      </View>
-  );
-};
-
 const getContacts = async({ navigation }) => {
   console.debug("getContacts")
   const token = await AsyncStorage.getItem('x-authorization');
@@ -512,6 +514,29 @@ const getContacts = async({ navigation }) => {
     const json = await response.json();
     console.log('Contacts: ', json);
     navigation.navigate('My Contacts', {json})
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+
+};
+
+const getChats = async({ navigation }) => {
+  console.debug("getChats")
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  try {
+    const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/chat`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Authorization': token,
+      },
+    });
+
+    const json = await response.json();
+    console.log('Chats: ', json);
+    navigation.navigate('My Chats', {json})
 
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -663,6 +688,28 @@ function MyContactsScreen({ navigation, route }) {
         data={route.params.json}
         renderItem={renderItem}
         keyExtractor={(item) => item.user_id.toString()}
+        style={currentStyles.list}
+      />
+    </View>
+  );
+};
+
+function MyChatsScreen({ navigation, route }) {
+  console.debug("MyChatsScreen")
+  const { currentStyles } = useContext(ThemeContext);
+  const {json} = route.params;
+  console.debug("json: " + json);
+  
+  const renderItem = ({ item }) => (
+    <ChatList navigation={navigation} title={item.name} id={item.chat_id}/>
+  );
+
+  return (
+    <View style={currentStyles.container}>
+      <FlatList
+        data={route.params.json}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.chat_id.toString()}
         style={currentStyles.list}
       />
     </View>
@@ -834,6 +881,32 @@ function ContactScreen({ route , navigation }) {
     </View>
   );
 };
+
+function ChatScreen({ route, navigation }) {
+  console.debug('ChatScreen');
+  const { currentStyles } = useContext(ThemeContext);
+  const { json } = route.params;
+
+  return (
+    <View style={currentStyles.container}>
+      <Text style={currentStyles.title}>{json.name}</Text>
+      <FlatList
+        style={currentStyles.list}
+        data={json.messages}
+        renderItem={({ item, index }) => (
+          <View style={currentStyles.messageContainer}>
+            <View style={currentStyles.message}>
+              <Text style={currentStyles.text}>{item.message}</Text>
+            </View>
+            <Text style={currentStyles.timestamp}>{item.timestamp}</Text>
+          </View>
+        )}
+        keyExtractor={(item, index) => index.toString()}
+      />
+    </View>
+  );
+}
+
 
 function ProfileScreen({ route , navigation }) {
   console.debug("ProfileScreen")
@@ -1137,8 +1210,10 @@ function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="My Contacts" component={MyContactsScreen} />
+          <Stack.Screen name="My Chats" component={MyChatsScreen} />
           <Stack.Screen name="Blocked Contacts" component={BlockedContactsScreen} />
           <Stack.Screen name="Contact" component={ContactScreen} />
+          <Stack.Screen name="Chat" component={ChatScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="Edit Profile" component={EditProfileScreen} />
           <Stack.Screen name="Search Results" component={SearchResultsScreen} />
@@ -1157,6 +1232,19 @@ const darkStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 50,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#ffffff',
+  },
+  subTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 5,
+    color: '#ffffff',
   },
   scrollContainer: {
     flex: 1,
@@ -1233,7 +1321,7 @@ const darkStyles = StyleSheet.create({
   titleText: {
     color: '#F5F5F5',
     fontWeight: 'bold',
-    fontSize: 20,
+    fontSize: 16,
     marginRight: 10,
   },
   profileContainer: {
@@ -1263,33 +1351,50 @@ const darkStyles = StyleSheet.create({
   },
   lstItem: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 20,
     borderBottomWidth: 1,
     borderBottomColor: '#e5e5e5',
   },
   list: {
-    flex: 1,
-    width: '100%',
-    paddingHorizontal: 20,
+  flex: 1,
+  width: '100%',
+  paddingHorizontal: 20,
   },
   searchBarContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 10,
+  flexDirection: 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: 10,
   },
   searchBarInput: {
-    flex: 1,
-    height: 40,
-    borderWidth: 1,
-    borderColor: 'white',
-    marginRight: 10,
-    paddingHorizontal: 10,
+  flex: 1,
+  height: 40,
+  borderWidth: 1,
+  borderColor: 'white',
+  marginRight: 10,
+  paddingHorizontal: 10,
+  color: '#F5F5F5',
   },
-  
-})
+  messageContainer: {
+  flexDirection: 'column',
+  marginBottom: 10,
+  alignSelf: 'flex-start',
+  },
+  message: {
+  backgroundColor: '#DCF8C6',
+  borderRadius: 5,
+  paddingHorizontal: 10,
+  paddingVertical: 5,
+  maxWidth: '80%',
+  },
+  timestamp: {
+  fontSize: 12,
+  color: 'gray',
+  marginLeft: 5,
+  marginTop: 2,
+  },
+  });
 
 
 const lightStyles = StyleSheet.create({
@@ -1298,6 +1403,7 @@ const lightStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 50,
+    backgroundColor: '#ECE5DD',
   },
   scrollContainer: {
     flex: 1,
@@ -1343,7 +1449,7 @@ const lightStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     alignSelf: 'center',
-    marginBottom : 10,
+    marginBottom: 10,
   },
   btnText: {
     color: '#ffffff',
@@ -1383,6 +1489,13 @@ const lightStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 16,
+  },
+  subTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 10,
+    marginBottom: 5,
+    color: '#1c1c1c',
   },
   userInfo: {
     flexDirection: 'row',
@@ -1429,4 +1542,30 @@ const lightStyles = StyleSheet.create({
     paddingHorizontal: 10,
     color: '#3c3c3c',
   },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#1c1c1c',
+    padding: 10,
+  },
+  messageContainer: {
+    flexDirection: 'column',
+    marginBottom: 10,
+    alignSelf: 'flex-start',
+  },
+  message: {
+    backgroundColor: '#DCF8C6',
+    borderRadius: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    maxWidth: '80%',
+  },
+  timestamp: {
+    fontSize: 12,
+    color: 'gray',
+    marginLeft: 5,
+    marginTop: 2,
+  },
 })
+

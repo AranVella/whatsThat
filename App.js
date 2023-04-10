@@ -65,6 +65,7 @@ const getProfile = async({ navigation }, id, screen) => {
   console.debug("screen: " + screen);
 
   const token = await AsyncStorage.getItem('x-authorization');
+  const userId = await AsyncStorage.getItem('id');
 
   try {
     const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}`, {
@@ -89,7 +90,14 @@ const getProfile = async({ navigation }, id, screen) => {
 
     const json = await response.json();
     console.log(json);
+    if (userId == id)
+    {
+      navigation.navigate('Profile', {json: json, image: imageObjectURL});
+    }
+    else
+    {
     navigation.navigate(screen, {json: json, image: imageObjectURL});
+    }
 
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -120,6 +128,111 @@ const deleteContact = async({ navigation }, id) => {
     }
     else if (response.status == 400) {
       Alert.alert('Alert', 'Error whilst deleting', 
+        {text: 'OK'});
+      getContacts({ navigation })
+    }
+    else {
+      throw new Error('Server response not OK - ' + response.status); 
+    }
+  })
+  .catch((error) => {
+    console.warn(error);
+  });
+}
+
+const addContact = async({ navigation }, id) => {
+  console.debug("addContact")
+  console.debug("ID: " + id);
+
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}/contact`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Authorization': token,
+    },
+  })
+  .then(async(response) => {
+    
+    if (response.status == 200) {
+      Alert.alert('Alert', 'Contact Added', 
+        {text: 'OK'});
+      getContacts({ navigation })
+    }
+    else if (response.status == 400) {
+      Alert.alert('Alert', 'Error whilst adding', 
+        {text: 'OK'});
+      getContacts({ navigation })
+    }
+    else {
+      throw new Error('Server response not OK - ' + response.status); 
+    }
+  })
+  .catch((error) => {
+    console.warn(error);
+  });
+}
+
+const blockContact = async({ navigation }, id) => {
+  console.debug("blockContact")
+  console.debug("ID: " + id);
+
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}/block`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Authorization': token,
+    },
+  })
+  .then(async(response) => {
+    
+    if (response.status == 200) {
+      Alert.alert('Alert', 'Contact blocked', 
+        {text: 'OK'});
+      getContacts({ navigation })
+    }
+    else if (response.status == 400) {
+      Alert.alert('Alert', 'Error whilst blocking', 
+        {text: 'OK'});
+      getContacts({ navigation })
+    }
+    else {
+      throw new Error('Server response not OK - ' + response.status); 
+    }
+  })
+  .catch((error) => {
+    console.warn(error);
+  });
+}
+
+const unblockContact = async({ navigation }, id) => {
+  console.debug("blockContact")
+  console.debug("ID: " + id);
+
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}/block`, {
+    method: 'DELETE',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Authorization': token,
+    },
+  })
+  .then(async(response) => {
+    
+    if (response.status == 200) {
+      Alert.alert('Alert', 'Contact unblocked', 
+        {text: 'OK'});
+      getContacts({ navigation })
+    }
+    else if (response.status == 400) {
+      Alert.alert('Alert', 'Error whilst unblocking', 
         {text: 'OK'});
       getContacts({ navigation })
     }
@@ -406,12 +519,81 @@ const getContacts = async({ navigation }) => {
 
 };
 
-const searchContacts = async({ navigation }, string) => {
+const checkContacts = async() => {
+  console.debug("checkContacts")
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  try {
+    const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/contacts`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Authorization': token,
+      },
+    });
+
+    const json = await response.json();
+    console.log('Contacts: ', json);
+    return json;
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+
+};
+
+const checkBlocked = async() => {
+  console.debug("checkBlocked")
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  try {
+    const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/blocked`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Authorization': token,
+      },
+    });
+
+    const json = await response.json();
+    console.log('Blocked: ', json);
+    return json;
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+
+};
+
+const getBlockedContacts = async({ navigation }) => {
+  console.debug("getContacts")
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  try {
+    const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/blocked`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Authorization': token,
+      },
+    });
+
+    const json = await response.json();
+    console.log('Contacts: ', json);
+    navigation.navigate('Blocked Contacts', {json})
+
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  }
+
+};
+
+const searchUsers = async({ navigation }, string, searchIn) => {
   console.debug("searchUsers")
   const token = await AsyncStorage.getItem('x-authorization');
 
   try {
-    const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/search?q=${string}&search_in=contacts&limit=20&offset=0`, {
+    const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/search?q=${string}&search_in=${searchIn}&limit=20&offset=0`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -429,8 +611,8 @@ const searchContacts = async({ navigation }, string) => {
 
 };
 
-function ContactsScreen({ navigation }) {
-  console.debug("ContactsScreen")
+function HomeScreen({ navigation }) {
+  console.debug("HomeScreen")
   const { currentStyles } = useContext(ThemeContext);
 
   return (
@@ -439,11 +621,11 @@ function ContactsScreen({ navigation }) {
       <Text style={currentStyles.whatsThat}>whatsThat</Text>
       <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
     </View>
+    <Pressable style={currentStyles.btn} onPress={() => getChats({ navigation })}>
+        <Text style={currentStyles.btnText}>My Chats</Text>
+      </Pressable>
       <Pressable style={currentStyles.btn} onPress={() => getContacts({ navigation })}>
         <Text style={currentStyles.btnText}>My Contacts</Text>
-      </Pressable>
-      <Pressable style={currentStyles.btn} onPress={() => searchUsers({ navigation })}>
-        <Text style={currentStyles.btnText}>Add New Contact</Text>
       </Pressable>
   </View>
   );
@@ -462,15 +644,18 @@ function MyContactsScreen({ navigation, route }) {
 
   return (
     <View style={currentStyles.container}>
+      <Pressable style={currentStyles.btn}onPress={() => getBlockedContacts({ navigation })}>
+          <Text style={currentStyles.btnText}>View Blocked Users</Text>
+        </Pressable>
       <View style={currentStyles.searchBarContainer}>
         <TextInput
           style={currentStyles.input}
-          placeholder="Search contacts"
+          placeholder="Search all users"
           placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
           value={searchTerm}
           onChangeText={setSearchTerm}
         />
-         <Pressable style={currentStyles.btn}onPress={() => searchContacts({ navigation }, searchTerm)}>
+         <Pressable style={currentStyles.btn}onPress={() => searchUsers({ navigation }, searchTerm, 'all')}>
           <Text style={currentStyles.btnText}>Search</Text>
         </Pressable>
       </View>
@@ -484,8 +669,30 @@ function MyContactsScreen({ navigation, route }) {
   );
 };
 
+function BlockedContactsScreen({ navigation, route }) {
+  console.debug("BlockedContactsScreen")
+  const { currentStyles } = useContext(ThemeContext);
+  const {json} = route.params;
+  console.debug("json: " + json);
+  
+  const renderItem = ({ item }) => (
+    <ContactList navigation={navigation} title={item.first_name + ' ' + item.last_name} id={item.user_id}/>
+  );
+
+  return (
+    <View style={currentStyles.container}>
+      <FlatList
+        data={route.params.json}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.user_id.toString()}
+        style={currentStyles.list}
+      />
+    </View>
+  );
+};
+
 function SearchResultsScreen({ navigation, route }) {
-  console.debug("MyContactsScreen")
+  console.debug("SearchResultsScreen")
   const { currentStyles } = useContext(ThemeContext);
   const {json} = route.params;
   console.debug("json: " + json);
@@ -508,14 +715,59 @@ function SearchResultsScreen({ navigation, route }) {
 
 function ContactScreen({ route , navigation }) {
   console.debug("ContactScreen")
+  const [contactExists, setContactExists] = useState(false);
+  const [blockedExists, setBlockedExists] = useState(false);
   const { currentStyles } = useContext(ThemeContext);
   const {json, image} = route.params;
   console.debug("json: " + json);
   console.debug("image: " + image);
   const { user_id, first_name, last_name, email } = json;
-  
-  return (
-      <View style={currentStyles.container}>
+
+  useEffect(() => {
+    const fetchData = async (userId) => {
+      const contacts =  await checkContacts();
+      const blocked =  await checkBlocked();
+      setContactExists(contacts.some(user => user.user_id === userId));
+      setBlockedExists(blocked.some(user => user.user_id === userId));
+      console.log("contactExists: ", contactExists)
+    }
+    fetchData(user_id);
+  }, []);
+
+  if(blockedExists) return (
+    <View style={currentStyles.container}>
+        <View style={currentStyles.titleContainer}>
+          <Text style={currentStyles.whatsThat}>whatsThat</Text>
+          <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+        </View>
+        <View style={currentStyles.profileContainer}>
+        <Image source={{ uri: image }} style={currentStyles.image} />
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>User ID:</Text>
+            <Text style={currentStyles.text}>{user_id}</Text>
+          </View>
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>First Name:</Text>
+            <Text style={currentStyles.text}>{first_name}</Text>
+          </View>
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>Last Name:</Text>
+            <Text style={currentStyles.text}>{last_name}</Text>
+          </View>
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>Email:</Text>
+            <Text style={currentStyles.text}>{email}</Text>
+          </View>
+        </View>
+        <View style={currentStyles.container}>
+        <Pressable style={currentStyles.btn} onPress={() => unblockContact({ navigation }, user_id)}>
+          <Text style={currentStyles.btnText}>Unblock Contact</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+  if(contactExists) return (
+    <View style={currentStyles.container}>
         <View style={currentStyles.titleContainer}>
           <Text style={currentStyles.whatsThat}>whatsThat</Text>
           <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
@@ -543,8 +795,40 @@ function ContactScreen({ route , navigation }) {
         <Pressable style={currentStyles.btn} onPress={() => deleteContact({ navigation }, user_id)}>
           <Text style={currentStyles.btnText}>Delete Contact</Text>
         </Pressable>
-        <Pressable style={currentStyles.btn} onPress={() => blockContact(user_id)}>
+        <Pressable style={currentStyles.btn} onPress={() => blockContact({ navigation }, user_id)}>
           <Text style={currentStyles.btnText}>Block Contact</Text>
+        </Pressable>
+      </View>
+    </View>
+  );
+  return (
+      <View style={currentStyles.container}>
+        <View style={currentStyles.titleContainer}>
+          <Text style={currentStyles.whatsThat}>whatsThat</Text>
+          <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+        </View>
+        <View style={currentStyles.profileContainer}>
+        <Image source={{ uri: image }} style={currentStyles.image} />
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>User ID:</Text>
+            <Text style={currentStyles.text}>{user_id}</Text>
+          </View>
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>First Name:</Text>
+            <Text style={currentStyles.text}>{first_name}</Text>
+          </View>
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>Last Name:</Text>
+            <Text style={currentStyles.text}>{last_name}</Text>
+          </View>
+          <View style={currentStyles.userInfo}>
+            <Text style={currentStyles.titleText}>Email:</Text>
+            <Text style={currentStyles.text}>{email}</Text>
+          </View>
+        </View>
+        <View style={currentStyles.container}>
+        <Pressable style={currentStyles.btn} onPress={() => addContact({ navigation }, user_id)}>
+          <Text style={currentStyles.btnText}>Add as Contact</Text>
         </Pressable>
       </View>
     </View>
@@ -795,7 +1079,7 @@ function HomeTabs() {
   console.debug("HomeTabs")
   return (
     <Tab.Navigator
-    initialRouteName="Chats"
+    initialRouteName="Home"
       screenOptions={{
         "tabBarActiveTintColor": "white",
         "tabBarInactiveTintColor": "#3c3c3c",
@@ -808,27 +1092,13 @@ function HomeTabs() {
       }}
     >
       <Tab.Screen
-        name="Contacts"
-        component={ContactsScreen}
+        name="Home"
+        component={HomeScreen}
         options={{
           tabBarIcon: ({ color }) => (
             <View>
               <Image
                 source={require('./assets/contacts.png')}
-                style={{ tintColor: color }}
-              />
-            </View>
-          ),
-        }}
-      />
-      <Tab.Screen
-        name="Chats"
-        component={ChatsScreen}
-        options={{
-          tabBarIcon: ({ color }) => (
-            <View>
-              <Image
-                source={require('./assets/chat.png')}
                 style={{ tintColor: color }}
               />
             </View>
@@ -867,6 +1137,7 @@ function App() {
             options={{ headerShown: false }}
           />
           <Stack.Screen name="My Contacts" component={MyContactsScreen} />
+          <Stack.Screen name="Blocked Contacts" component={BlockedContactsScreen} />
           <Stack.Screen name="Contact" component={ContactScreen} />
           <Stack.Screen name="Profile" component={ProfileScreen} />
           <Stack.Screen name="Edit Profile" component={EditProfileScreen} />

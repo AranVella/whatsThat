@@ -10,6 +10,7 @@ import {
   Alert,
   FlatList,
   TouchableOpacity,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { SearchBar } from "react-native-elements";
 import * as ImagePicker from 'expo-image-picker';
@@ -135,7 +136,7 @@ const getChat = async({ navigation }, id) => {
     });
     
     const json = await response.json();
-    navigation.navigate("Chat", {json: json});
+    navigation.navigate("Chat", {json: json, id: id});
 
   } catch (error) {
     console.error('Error fetching data:', error);
@@ -203,6 +204,41 @@ const addContact = async({ navigation }, id) => {
       Alert.alert('Alert', 'Error whilst adding', 
         {text: 'OK'});
       getContacts({ navigation })
+    }
+    else {
+      throw new Error('Server response not OK - ' + response.status); 
+    }
+  })
+  .catch((error) => {
+    console.warn(error);
+  });
+}
+
+const postMessage = async({ navigation }, id, message) => {
+  console.debug("postMessage")
+  console.debug("ID: " + id);
+
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  fetch(`http://192.168.1.245:3333/api/1.0.0/chat/${id}/message`, {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Authorization': token,
+    },
+    body: JSON.stringify({
+      message: message,
+    }),
+  })
+  .then(async(response) => {
+    
+    if (response.status == 200) {
+      getChat({ navigation }, id);
+    }
+    else if (response.status == 400) {
+      Alert.alert('Alert', 'Error whilst sending', 
+        {text: 'OK'});
     }
     else {
       throw new Error('Server response not OK - ' + response.status); 
@@ -885,28 +921,83 @@ function ContactScreen({ route , navigation }) {
 function ChatScreen({ route, navigation }) {
   console.debug('ChatScreen');
   const { currentStyles } = useContext(ThemeContext);
-  const { json } = route.params;
+  const { json, id } = route.params;
+  const [inputText, setInputText] = useState('');
+  const [userID, setuserID] = useState('');
 
-  return (
-    <View style={currentStyles.container}>
-      <Text style={currentStyles.title}>{json.name}</Text>
-      <FlatList
-        style={currentStyles.list}
-        data={json.messages}
-        renderItem={({ item, index }) => (
-          <View style={currentStyles.messageContainer}>
-            <View style={currentStyles.message}>
-              <Text style={currentStyles.text}>{item.message}</Text>
-            </View>
-            <Text style={currentStyles.timestamp}>{item.timestamp}</Text>
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const id = await AsyncStorage.getItem('id');
+      setuserID(id);
+    }
+    fetchData();
+  }, []);
+
+  
+
+  console.log("json: ", json)
+  console.log("chat id: ", id)
+  console.log("user id: ", userID)
+
+  const sendMessage = (string) => {
+    setInputText('');
+    postMessage({ navigation }, id, string);
+  };
+
+  const formatDate = (timestamp) => {
+    const date = new Date(timestamp);
+    const hours = date.getHours();
+    const minutes = date.getMinutes().toString().padStart(2, '0');
+    return `${hours}:${minutes}`;
+  };
+
+  // Sort messages by timestamp in ascending order
+const sortedMessages = json.messages.slice().sort((a, b) => a.timestamp - b.timestamp);
+
+
+return (
+  <KeyboardAvoidingView
+    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    style={currentStyles.container}
+  >
+    <Text style={currentStyles.title}>{json.name}</Text>
+    <FlatList
+      style={currentStyles.list}
+      data={sortedMessages}
+      renderItem={({ item, index }) => (
+        <View
+          style={[
+            currentStyles.messageContainer,
+            item.author === id
+              ? currentStyles.messageContainerSent
+              : currentStyles.messageContainerReceived,
+          ]}
+        >
+          <Text style={currentStyles.authorName}>{item.author.first_name}</Text>
+          <View style={currentStyles.message}>
+            <Text style={currentStyles.messagetext}>{item.message}</Text>
           </View>
-        )}
-        keyExtractor={(item, index) => index.toString()}
+          <Text style={currentStyles.timestamp}>{formatDate(item.timestamp)}</Text>
+        </View>
+      )}
+      keyExtractor={(item, index) => index.toString()}
+    />
+    <View style={currentStyles.inputMesageContainer}>
+      <TextInput
+        style={currentStyles.input}
+        value={inputText}
+        onChangeText={setInputText}
+        placeholder="Type your message"
+        placeholderTextColor={currentStyles.text.color}
       />
+      <TouchableOpacity style={currentStyles.btnSend} onPress={() => sendMessage(inputText)}>
+        <Text style={currentStyles.btnText}>Send</Text>
+      </TouchableOpacity>
     </View>
-  );
+  </KeyboardAvoidingView>
+);
 }
-
 
 function ProfileScreen({ route , navigation }) {
   console.debug("ProfileScreen")
@@ -1275,6 +1366,22 @@ const darkStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     elevation: 5,
   },
+  inputMesageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 100,
+    marginTop: 10,
+    marginHorizontal: 20,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: '#3c3c3c',
+    borderColor: '#f5f5f5',
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 5,
+  },
   input: {
     color: 'white',
     flex: 1,
@@ -1291,6 +1398,15 @@ const darkStyles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'center',
     marginBottom: 10,
+  },
+  btnSend: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 10,
+    height: 50,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
   },
   btnText: {
     color: '#ffffff',
@@ -1315,6 +1431,11 @@ const darkStyles = StyleSheet.create({
   },
   text: {
     color: '#F5F5F5',
+    fontSize: 16,
+    marginRight: 10,
+  },
+  messagetext: {
+    color: '#1c1c1c',
     fontSize: 16,
     marginRight: 10,
   },
@@ -1394,6 +1515,22 @@ const darkStyles = StyleSheet.create({
   marginLeft: 5,
   marginTop: 2,
   },
+  messageContainerSent: {
+    flexDirection: 'column',
+    marginBottom: 10,
+    alignSelf: 'flex-end',
+  },
+  messageContainerReceived: {
+    flexDirection: 'column',
+    marginBottom: 10,
+    alignSelf: 'flex-start',
+  },
+  authorName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 2,
+    color: '#F5F5F5',
+    },
   });
 
 
@@ -1403,7 +1540,7 @@ const lightStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingTop: 50,
-    backgroundColor: '#ECE5DD',
+    backgroundColor: '#F5F5F5',
   },
   scrollContainer: {
     flex: 1,
@@ -1434,6 +1571,22 @@ const lightStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     elevation: 5,
   },
+  inputMesageContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 100,
+    marginTop: 10,
+    marginHorizontal: 20,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    backgroundColor: '#F5F5F5',
+    borderColor: '#3c3c3c',
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 5,
+  },
   input: {
     color: 'black',
     flex: 1,
@@ -1450,6 +1603,15 @@ const lightStyles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'center',
     marginBottom: 10,
+  },
+  btnSend: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 10,
+    height: 50,
+    paddingHorizontal: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    alignSelf: 'center',
   },
   btnText: {
     color: '#ffffff',
@@ -1473,6 +1635,11 @@ const lightStyles = StyleSheet.create({
     marginTop: 20,
   },
   text: {
+    color: '#1c1c1c',
+    fontSize: 16,
+    marginRight: 10,
+  },
+  messagetext: {
     color: '#1c1c1c',
     fontSize: 16,
     marginRight: 10,
@@ -1567,5 +1734,22 @@ const lightStyles = StyleSheet.create({
     marginLeft: 5,
     marginTop: 2,
   },
+  messageContainerSent: {
+    flexDirection: 'column',
+    marginBottom: 10,
+    alignSelf: 'flex-end',
+  },
+  messageContainerReceived: {
+    flexDirection: 'column',
+    marginBottom: 10,
+    alignSelf: 'flex-start',
+  },
+  authorName: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 2,
+    color: '#1c1c1c',
+    },
+  
 })
 

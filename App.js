@@ -439,6 +439,10 @@ function LoginScreen({ navigation }) {
       const id = await AsyncStorage.getItem('id');
       console.log("Setting ID at login. Value = " , id);
       console.log("Auth Token. Value = " , responseJson.token);
+      setMessage('');
+      setInputEmail('');
+      setInputPassword('');
+      
       navigation.navigate('HomeTabs');
     }
     else if (response.status == 400) {
@@ -536,7 +540,7 @@ function RegisterScreen ({navigation}) {
       }),
     })
     .then(async(response) => {
-      if (response.status == 200) {
+      if (response.status == 201) {
         Alert.alert('Alert', 'Registration Successful', 
         {text: 'OK'});
         navigation.navigate('Login');
@@ -777,7 +781,7 @@ function MyContactsScreen({ navigation, route }) {
   const [searchTerm, setSearchTerm] = useState('');
   
   const renderItem = ({ item }) => (
-    <ContactList navigation={navigation} title={item.first_name + ' ' + item.last_name} id={item.user_id}/>
+    <ContactList navigation={navigation} title={item.email} id={item.user_id}/>
   );
 
   return (
@@ -819,13 +823,18 @@ function MyChatsScreen({ navigation, route }) {
 
   return (
     <View style={currentStyles.container}>
-      <FlatList
-        data={route.params.json}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.chat_id.toString()}
-        style={currentStyles.list}
-      />
+    <View>
+      <TouchableOpacity style={currentStyles.btn} onPress={() => navigation.navigate('Start Chat')}>
+        <Text style={currentStyles.btnText}>Start New Chat</Text>
+      </TouchableOpacity>
     </View>
+    <FlatList
+      data={route.params.json}
+      renderItem={renderItem}
+      keyExtractor={(item) => item.chat_id.toString()}
+      style={currentStyles.list}
+    />
+  </View>
   );
 };
 
@@ -836,7 +845,7 @@ function BlockedContactsScreen({ navigation, route }) {
   console.debug("json: " + json);
   
   const renderItem = ({ item }) => (
-    <ContactList navigation={navigation} title={item.first_name + ' ' + item.last_name} id={item.user_id}/>
+    <ContactList navigation={navigation} title={item.email} id={item.user_id}/>
   );
 
   return (
@@ -1001,15 +1010,8 @@ function ChatScreen({ route, navigation }) {
   const { json, id } = route.params;
   const [inputText, setInputText] = useState('');
   const [userID, setuserID] = useState('');
+  const [updatedMessage, setUpdatedMessage] = useState('');
   const [selectedMessage, setSelectedMessage] = useState(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const id = await AsyncStorage.getItem('id');
-      setuserID(id);
-    }
-    fetchData();
-  }, []);
 
   const sendMessage = (string) => {
     setInputText('');
@@ -1029,12 +1031,71 @@ function ChatScreen({ route, navigation }) {
     setSelectedMessage(message);
   };
 
-  const handleUpdateMessage = () => {
-    // TODO: implement update message functionality
-  };
+  const handleUpdateMessage = async ({ navigation } , chat_id, message_id, newMessage) => {
+      setSelectedMessage(null);
+      console.debug("handleUpdateMessage")
+      console.debug("chat_id: " + chat_id);
+      console.debug("message_id: " + message_id);
+      console.debug("newMessage: " + newMessage);
 
-  const handleDeleteMessage = () => {
-    // TODO: implement delete message functionality
+  
+      const token = await AsyncStorage.getItem('x-authorization');
+  
+      fetch(`http://192.168.1.245:3333/api/1.0.0//chat/${chat_id}/message/${message_id}`, {
+        method: 'PATCH',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Authorization': token,
+        },
+    
+        body: JSON.stringify({
+          message: newMessage,
+        }),
+      })
+      .then((response) => {
+        if (response.status == 200) {
+          getChat({ navigation }, chat_id);
+        } else {
+          Alert.alert('Alert', 'Error', 
+          {text: 'OK'});
+          throw new Error('Server response not OK - ' + response.status);
+          
+        }
+      })
+      .catch((error) => {
+        console.warn(error);
+      });
+    }
+
+  const handleDeleteMessage = async ({ navigation } , chat_id, message_id) => {
+    console.debug("handleDeleteMessage")
+      console.debug("chat_id: " + chat_id);
+      console.debug("message_id: " + message_id);
+  
+      const token = await AsyncStorage.getItem('x-authorization');
+  
+      fetch(`http://192.168.1.245:3333/api/1.0.0//chat/${chat_id}/message/${message_id}`, {
+        method: 'DELETE',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Authorization': token,
+        },
+      })
+      .then((response) => {
+        if (response.status == 200) {
+          getChat({ navigation }, chat_id);
+        } else {
+          Alert.alert('Alert', 'Error', 
+          {text: 'OK'});
+          throw new Error('Server response not OK - ' + response.status);
+          
+        }
+      })
+      .catch((error) => {
+        console.warn(error);
+      });
   };
   const handleCancelMessage = () => {
     setSelectedMessage(null);
@@ -1067,7 +1128,11 @@ function ChatScreen({ route, navigation }) {
         )}
         keyExtractor={(item, index) => index.toString()}
       />
-      <View style={currentStyles.inputMesageContainer}>
+      <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={currentStyles.messageInputWrapper}
+    >
+      <View style={currentStyles.inputMessageContainer}>
         <TextInput
           style={currentStyles.input}
           value={inputText}
@@ -1080,11 +1145,18 @@ function ChatScreen({ route, navigation }) {
         </TouchableOpacity>
       </View>
       {selectedMessage && (
-        <View style={currentStyles.messageOptionsContainer}>
-          <TouchableOpacity style={currentStyles.updateButton} onPress={handleUpdateMessage}>
+        <View style={currentStyles.inputMessageContainer}>
+          <TouchableOpacity style={currentStyles.updateButton} onPress={() => handleUpdateMessage({ navigation }, id, selectedMessage.message_id, updatedMessage)}>
             <Text style={currentStyles.btnText}>Update</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={currentStyles.deleteButton} onPress={handleDeleteMessage}>
+          <TextInput
+            style={currentStyles.input}
+            value={updatedMessage}
+            onChangeText={setUpdatedMessage}
+            placeholder="Enter update"
+            placeholderTextColor={currentStyles.text.color}
+          />
+          <TouchableOpacity style={currentStyles.deleteButton}onPress={() => handleDeleteMessage({ navigation }, id, selectedMessage.message_id)}>
             <Text style={currentStyles.btnText}>Delete</Text>
           </TouchableOpacity>
           <TouchableOpacity style={currentStyles.cancelButton} onPress={handleCancelMessage}>
@@ -1093,8 +1165,11 @@ function ChatScreen({ route, navigation }) {
         </View>
       )}
     </KeyboardAvoidingView>
+  </KeyboardAvoidingView>
 );
-}
+};
+
+
 
 function AddToChatScreen({ route , navigation }) {
   console.debug("AddToChatScreen")
@@ -1281,6 +1356,73 @@ function EditChatScreen({ route, navigation }) {
       console.warn(error);
     });
   }
+  return (
+    <View style={currentStyles.container}>
+       <View style={currentStyles.titleContainer}>
+        <Text style={currentStyles.whatsThat}>whatsThat</Text>
+        <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+      </View>
+      <View style={currentStyles.profileContainer}>
+        <View style={currentStyles.inputContainer}>
+        <TextInput
+          style={currentStyles.input}
+          placeholder={inputName}
+          placeholderTextColor={isDarkMode ? '#F5F5F5' : '#c4c4c4'}
+          value={inputName}
+          onChangeText={setInputName}
+        />
+        </View>
+      </View>
+      <View style={currentStyles.container}>
+      <Pressable style={currentStyles.btn} onPress={() => editChat(id, inputName)}>
+        <Text style={currentStyles.btnText}>Confirm</Text>
+      </Pressable>
+      </View>
+    </View>
+);
+}
+
+  function StartChatScreen({ navigation }) {
+    console.debug("StartChatScreen")
+    const { isDarkMode, currentStyles } = useContext(ThemeContext);
+    const [inputName, setInputName] = useState('');
+  
+    const startChat = async(name) => {
+      console.debug("startChat")
+      const token = await AsyncStorage.getItem('x-authorization');
+      
+      fetch(`http://192.168.1.245:3333/api/1.0.0/chat`, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/json',
+          'Content-Type': 'application/json',
+          'X-Authorization': token,
+        },
+        body: JSON.stringify({
+          name: name
+        }),
+      })
+      .then(async(response) => {
+        
+        if (response.status == 201) {
+          Alert.alert('Alert', 'Chat started', 
+            {text: 'OK'});
+          getChats({ navigation })
+        }
+        else if (response.status == 400) {
+          Alert.alert('Alert', 'Error', 
+            {text: 'OK'});
+            getChats({ navigation })
+        }
+        else {
+          throw new Error('Server response not OK - ' + response.status); 
+        }
+      })
+      .catch((error) => {
+        console.warn(error);
+      });
+    
+    };
 
   return (
       <View style={currentStyles.container}>
@@ -1300,13 +1442,13 @@ function EditChatScreen({ route, navigation }) {
           </View>
         </View>
         <View style={currentStyles.container}>
-        <Pressable style={currentStyles.btn} onPress={() => editChat(id, inputName)}>
+        <Pressable style={currentStyles.btn} onPress={() => startChat(inputName)}>
           <Text style={currentStyles.btnText}>Confirm</Text>
         </Pressable>
         </View>
       </View>
   );
-};
+}
 
 function EditProfileScreen({ route, navigation }) {
   console.debug("EditProfileScreen")
@@ -1573,6 +1715,7 @@ function App() {
           <Stack.Screen name="Chat Details" component={ChatDetailsScreen} />
           <Stack.Screen name="Add To Chat" component={AddToChatScreen} />
           <Stack.Screen name="Edit Chat" component={EditChatScreen} />
+          <Stack.Screen name="Start Chat" component={StartChatScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </ThemeProvider>
@@ -1631,11 +1774,16 @@ const darkStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     elevation: 5,
   },
-  inputMesageContainer: {
+  messageInputWrapper: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    marginBottom: 20,
+    width: '100%',
+  },
+  inputMessageContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 100,
     marginTop: 10,
     marginHorizontal: 20,
     paddingHorizontal: 20,
@@ -1882,11 +2030,16 @@ const lightStyles = StyleSheet.create({
     shadowOffset: { width: 0, height: 0 },
     elevation: 5,
   },
-  inputMesageContainer: {
+  messageInputWrapper: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    marginBottom: 20,
+    width: '100%',
+  },
+  inputMessageContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 100,
     marginTop: 10,
     marginHorizontal: 20,
     paddingHorizontal: 20,

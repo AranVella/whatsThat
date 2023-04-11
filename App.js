@@ -1001,7 +1001,7 @@ function ChatScreen({ route, navigation }) {
   const { json, id } = route.params;
   const [inputText, setInputText] = useState('');
   const [userID, setuserID] = useState('');
-
+  const [selectedMessage, setSelectedMessage] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -1010,12 +1010,6 @@ function ChatScreen({ route, navigation }) {
     }
     fetchData();
   }, []);
-
-  
-
-  console.log("json: ", json)
-  console.log("chat id: ", id)
-  console.log("user id: ", userID)
 
   const sendMessage = (string) => {
     setInputText('');
@@ -1031,47 +1025,74 @@ function ChatScreen({ route, navigation }) {
     return `${day}/${month+1} ${hours}:${minutes}`;
   };
 
+  const handlePressMessage = (message) => {
+    setSelectedMessage(message);
+  };
+
+  const handleUpdateMessage = () => {
+    // TODO: implement update message functionality
+  };
+
+  const handleDeleteMessage = () => {
+    // TODO: implement delete message functionality
+  };
+  const handleCancelMessage = () => {
+    setSelectedMessage(null);
+  };
+
   // Sort messages by timestamp in ascending order
-const sortedMessages = json.messages.slice().sort((a, b) => a.timestamp - b.timestamp);
+  const sortedMessages = json.messages.slice().sort((a, b) => a.timestamp - b.timestamp);
 
-
-return (
-  <KeyboardAvoidingView
-    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    style={currentStyles.container}
-  >
-    <TouchableOpacity onPress={() => navigation.navigate('Chat Details', {json, id})}>
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={currentStyles.container}
+    >
+      <TouchableOpacity onPress={() => navigation.navigate('Chat Details', {json, id})}>
         <Text style={currentStyles.title}>{json.name}</Text>
       </TouchableOpacity>
-    <FlatList
-      style={currentStyles.list}
-      data={sortedMessages}
-      renderItem={({ item, index }) => (
-        <View
-          style={currentStyles.messageContainer}
-        >
-          <Text style={currentStyles.authorName}>{item.author.first_name}</Text>
-          <View style={currentStyles.message}>
-            <Text style={currentStyles.messagetext}>{item.message}</Text>
-          </View>
-          <Text style={currentStyles.timestamp}>{formatDate(item.timestamp)}</Text>
+      <FlatList
+        style={currentStyles.list}
+        data={sortedMessages}
+        renderItem={({ item, index }) => (
+          <TouchableOpacity onPress={() => handlePressMessage(item)}>
+            <View style={currentStyles.messageContainer}>
+              <Text style={currentStyles.authorName}>{item.author.first_name}</Text>
+              <View style={currentStyles.message}>
+                <Text style={currentStyles.messagetext}>{item.message}</Text>
+              </View>
+              <Text style={currentStyles.timestamp}>{formatDate(item.timestamp)}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+        keyExtractor={(item, index) => index.toString()}
+      />
+      <View style={currentStyles.inputMesageContainer}>
+        <TextInput
+          style={currentStyles.input}
+          value={inputText}
+          onChangeText={setInputText}
+          placeholder="Type your message"
+          placeholderTextColor={currentStyles.text.color}
+        />
+        <TouchableOpacity style={currentStyles.btnSend} onPress={() => sendMessage(inputText)}>
+          <Text style={currentStyles.btnText}>Send</Text>
+        </TouchableOpacity>
+      </View>
+      {selectedMessage && (
+        <View style={currentStyles.messageOptionsContainer}>
+          <TouchableOpacity style={currentStyles.updateButton} onPress={handleUpdateMessage}>
+            <Text style={currentStyles.btnText}>Update</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={currentStyles.deleteButton} onPress={handleDeleteMessage}>
+            <Text style={currentStyles.btnText}>Delete</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={currentStyles.cancelButton} onPress={handleCancelMessage}>
+            <Text style={currentStyles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
         </View>
       )}
-      keyExtractor={(item, index) => index.toString()}
-    />
-    <View style={currentStyles.inputMesageContainer}>
-      <TextInput
-        style={currentStyles.input}
-        value={inputText}
-        onChangeText={setInputText}
-        placeholder="Type your message"
-        placeholderTextColor={currentStyles.text.color}
-      />
-      <TouchableOpacity style={currentStyles.btnSend} onPress={() => sendMessage(inputText)}>
-        <Text style={currentStyles.btnText}>Send</Text>
-      </TouchableOpacity>
-    </View>
-  </KeyboardAvoidingView>
+    </KeyboardAvoidingView>
 );
 }
 
@@ -1790,6 +1811,37 @@ const darkStyles = StyleSheet.create({
       fontSize: 16,
       fontWeight: 'bold',
     },
+    messageOptionsContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: 20,
+      paddingVertical: 10,
+      backgroundColor: '#1c1c1c',
+    },
+    updateButton: {
+      backgroundColor: '#4CAF50',
+      borderRadius: 5,
+      paddingVertical: 5,
+      paddingHorizontal: 10,
+    },
+    deleteButton: {
+      backgroundColor: '#F44336',
+      borderRadius: 5,
+      paddingVertical: 5,
+      paddingHorizontal: 10,
+    },
+    cancelButton: {
+      backgroundColor: '#f5f5f5',
+      borderRadius: 5,
+      paddingVertical: 5,
+      paddingHorizontal: 10,
+    },
+    cancelButtonText: {
+      color: '#1c1c1c',
+      fontWeight: 'bold',
+      fontSize: 16,
+    },
   });
 
 
@@ -2023,6 +2075,37 @@ const lightStyles = StyleSheet.create({
       color: '#FFFFFF',
       fontSize: 16,
       fontWeight: 'bold',
+  },
+  messageOptionsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    backgroundColor: '#F5F5F5',
+  },
+  updateButton: {
+    backgroundColor: '#4CAF50',
+    borderRadius: 5,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  deleteButton: {
+    backgroundColor: '#F44336',
+    borderRadius: 5,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  cancelButton: {
+    backgroundColor: '#1c1c1c',
+    borderRadius: 5,
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+  cancelButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
 })
 

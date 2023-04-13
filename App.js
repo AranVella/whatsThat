@@ -12,8 +12,6 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
 } from 'react-native';
-import { SearchBar } from "react-native-elements";
-import * as ImagePicker from 'expo-image-picker';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -33,11 +31,19 @@ const theme = {
   },
 };
 
+// A higher-order component that provides theme context to its child components.
 function ThemeProvider({ children }) {
+
+  // Prints a debug message to the console when this component is rendered.
   console.debug("ThemeProvider")
+
+  // Sets up state to track whether the user has enabled dark mode or not.
   const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Selects the appropriate styles based on whether the user has enabled dark mode or not.
   const currentStyles = isDarkMode ? darkStyles : lightStyles;
 
+  // Provides the current theme context to its child components.
   return (
     <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode, currentStyles }}>
       {children}
@@ -45,11 +51,17 @@ function ThemeProvider({ children }) {
   );
 }
 
-
+// A functional component that displays a single contact item in a list.
 const ContactList = ({ navigation, title, id }) => {
+
+  // Gets the current theme styles from the ThemeContext.
   const { currentStyles } = useContext(ThemeContext);
+
+  // Logs the title and id of the current contact item to the console.
   console.log('title: ', title);
   console.log('id: ', id);
+
+  // Renders the contact item with its title and a button to view its profile.
   return (
     <View style={currentStyles.lstItem}>
       <Text style={currentStyles.titleText}>{title}</Text>
@@ -60,10 +72,17 @@ const ContactList = ({ navigation, title, id }) => {
   );
 };
 
+// A functional component that displays a single chat item in a list.
 const ChatList = ({ navigation, title, id }) => {
+
+  // Gets the current theme styles from the ThemeContext.
   const { currentStyles } = useContext(ThemeContext);
+
+  // Logs the title and id of the current chat item to the console.
   console.log('title: ', title);
   console.log('id: ', id);
+
+  // Renders the chat item with its title and a button to view its chat screen.
   return (
     <View style={currentStyles.lstItem}>
       <Text style={currentStyles.titleText}>{title}</Text>
@@ -74,15 +93,24 @@ const ChatList = ({ navigation, title, id }) => {
   );
 };
 
+
+// An asynchronous function that retrieves the profile data for a given user ID and navigates to the appropriate screen.
 const getProfile = async({ navigation }, id, screen) => {
+
+  // Prints a debug message to the console when this function is called.
   console.debug("getProfile")
+
+  // Logs the ID and screen parameters to the console.
   console.debug("ID: " + id);
   console.debug("screen: " + screen);
 
+  // Retrieves the user's authentication token and ID from AsyncStorage.
   const token = await AsyncStorage.getItem('x-authorization');
   const userId = await AsyncStorage.getItem('id');
 
   try {
+
+    // Sends a GET request to retrieve the user's profile data from the server.
     const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}`, {
       method: 'GET',
       headers: {
@@ -90,6 +118,8 @@ const getProfile = async({ navigation }, id, screen) => {
         'X-Authorization': token,
       },
     });
+
+    // Sends a GET request to retrieve the user's profile picture from the server.
     const profilePic = await fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}/photo`, {
       method: 'GET', 
       headers: {
@@ -98,13 +128,16 @@ const getProfile = async({ navigation }, id, screen) => {
       },
     });
 
-    //console.log("profilePic: ", profilePic);
+    // Converts the profile picture data to a blob and creates a URL for the image.
     const imageBlob = await profilePic.blob();
     const imageObjectURL = URL.createObjectURL(imageBlob);
     console.log("imageObjectURL: ", imageObjectURL);
 
+    // Parses the JSON response from the server.
     const json = await response.json();
     console.log(json);
+
+    // Navigates to the appropriate screen based on the user's ID and the screen parameter.
     if (userId == id)
     {
       navigation.navigate('Profile', {json: json, image: imageObjectURL});
@@ -115,18 +148,30 @@ const getProfile = async({ navigation }, id, screen) => {
     }
 
   } catch (error) {
+
+    // Logs an error message to the console if the data retrieval fails.
     console.error('Error fetching data:', error);
+
   }
 
 };
 
+
+// An asynchronous function that retrieves the chat data for a given chat ID and navigates to the Chat screen.
 const getChat = async({ navigation }, id) => {
+
+  // Prints a debug message to the console when this function is called.
   console.debug("getChat")
+
+  // Logs the chat ID parameter to the console.
   console.debug("chat ID: " + id);
 
+  // Retrieves the user's authentication token from AsyncStorage.
   const token = await AsyncStorage.getItem('x-authorization');
 
   try {
+
+    // Sends a GET request to retrieve the chat data from the server.
     const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/chat/${id}`, {
       method: 'GET',
       headers: {
@@ -135,21 +180,35 @@ const getChat = async({ navigation }, id) => {
       },
     });
     
+    // Parses the JSON response from the server.
     const json = await response.json();
+
+    // Navigates to the Chat screen with the chat data and ID as parameters.
     navigation.navigate("Chat", {json: json, id: id});
 
   } catch (error) {
+
+    // Logs an error message to the console if the data retrieval fails.
     console.error('Error fetching data:', error);
+
   }
 
 };
 
+
+// An asynchronous function that deletes a contact with the specified ID and updates the contact list.
 const deleteContact = async({ navigation }, id) => {
+
+  // Prints a debug message to the console when this function is called.
   console.debug("deleteContact")
+
+  // Logs the ID parameter to the console.
   console.debug("ID: " + id);
 
+  // Retrieves the user's authentication token from AsyncStorage.
   const token = await AsyncStorage.getItem('x-authorization');
 
+  // Sends a DELETE request to delete the contact from the server.
   fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}/contact`, {
     method: 'DELETE',
     headers: {
@@ -159,7 +218,8 @@ const deleteContact = async({ navigation }, id) => {
     },
   })
   .then(async(response) => {
-    
+
+    // Checks the status code of the server response and displays an alert message accordingly.
     if (response.status == 200) {
       Alert.alert('Alert', 'Contact Deleted', 
         {text: 'OK'});
@@ -179,12 +239,20 @@ const deleteContact = async({ navigation }, id) => {
   });
 }
 
+
+// An asynchronous function that adds a new contact with the specified ID and updates the contact list.
 const addContact = async({ navigation }, id) => {
+
+  // Prints a debug message to the console when this function is called.
   console.debug("addContact")
+
+  // Logs the ID parameter to the console.
   console.debug("ID: " + id);
 
+  // Retrieves the user's authentication token from AsyncStorage.
   const token = await AsyncStorage.getItem('x-authorization');
 
+  // Sends a POST request to add the contact to the server.
   fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}/contact`, {
     method: 'POST',
     headers: {
@@ -194,7 +262,8 @@ const addContact = async({ navigation }, id) => {
     },
   })
   .then(async(response) => {
-    
+
+    // Checks the status code of the server response and displays an alert message accordingly.
     if (response.status == 200) {
       Alert.alert('Alert', 'Contact Added', 
         {text: 'OK'});
@@ -214,12 +283,20 @@ const addContact = async({ navigation }, id) => {
   });
 }
 
+
+// An asynchronous function that adds a contact with the specified ID to the specified chat and updates the chat data.
 const addContactToChat = async({ navigation }, id, chat_id) => {
+
+  // Prints a debug message to the console when this function is called.
   console.debug("addContactToChat")
+
+  // Logs the ID parameter to the console.
   console.debug("ID: " + id);
 
+  // Retrieves the user's authentication token from AsyncStorage.
   const token = await AsyncStorage.getItem('x-authorization');
 
+  // Sends a POST request to add the contact to the chat on the server.
   fetch(`http://192.168.1.245:3333/api/1.0.0/chat/${chat_id}/user/${id}`, {
     method: 'POST',
     headers: {
@@ -229,7 +306,8 @@ const addContactToChat = async({ navigation }, id, chat_id) => {
     },
   })
   .then(async(response) => {
-    
+
+    // Checks the status code of the server response and displays an alert message accordingly.
     if (response.status == 200) {
       Alert.alert('Alert', 'Contact Added to chat', 
         {text: 'OK'});
@@ -248,13 +326,21 @@ const addContactToChat = async({ navigation }, id, chat_id) => {
   });
 }
 
+
+// An asynchronous function that removes a contact with the specified ID from the specified chat and updates the chat data.
 const removeContactFromChat = async({ navigation }, id, chat_id) => {
+
+  // Prints a debug message to the console when this function is called.
   console.debug("removeContactFromChat")
+
+  // Logs the ID parameter to the console.
   console.debug("ID: " + id);
 
+  // Retrieves the user's authentication token from AsyncStorage.
   const token = await AsyncStorage.getItem('x-authorization');
   const userId = await AsyncStorage.getItem('id');
 
+  // Sends a DELETE request to remove the contact from the chat on the server.
   fetch(`http://192.168.1.245:3333/api/1.0.0/chat/${chat_id}/user/${id}`, {
     method: 'DELETE',
     headers: {
@@ -264,7 +350,8 @@ const removeContactFromChat = async({ navigation }, id, chat_id) => {
     },
   })
   .then(async(response) => {
-    
+
+    // Checks the status code of the server response and displays an alert message accordingly.
     if (response.status == 200) {
       if (userId == id)
       {
@@ -291,12 +378,19 @@ const removeContactFromChat = async({ navigation }, id, chat_id) => {
   });
 }
 
+// An asynchronous function that sends a message to the specified chat and updates the chat data.
 const postMessage = async({ navigation }, id, message) => {
+
+  // Prints a debug message to the console when this function is called.
   console.debug("postMessage")
+
+  // Logs the ID parameter to the console.
   console.debug("ID: " + id);
 
+  // Retrieves the user's authentication token from AsyncStorage.
   const token = await AsyncStorage.getItem('x-authorization');
 
+  // Sends a POST request to send the message to the chat on the server.
   fetch(`http://192.168.1.245:3333/api/1.0.0/chat/${id}/message`, {
     method: 'POST',
     headers: {
@@ -309,7 +403,8 @@ const postMessage = async({ navigation }, id, message) => {
     }),
   })
   .then(async(response) => {
-    
+
+    // Checks the status code of the server response and displays an alert message accordingly.
     if (response.status == 200) {
       getChat({ navigation }, id);
     }
@@ -326,12 +421,20 @@ const postMessage = async({ navigation }, id, message) => {
   });
 }
 
+
+// An asynchronous function that blocks a contact with the specified ID and updates the contact data.
 const blockContact = async({ navigation }, id) => {
+
+  // Prints a debug message to the console when this function is called.
   console.debug("blockContact")
+
+  // Logs the ID parameter to the console.
   console.debug("ID: " + id);
 
+  // Retrieves the user's authentication token from AsyncStorage.
   const token = await AsyncStorage.getItem('x-authorization');
 
+  // Sends a POST request to block the contact on the server.
   fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}/block`, {
     method: 'POST',
     headers: {
@@ -341,7 +444,8 @@ const blockContact = async({ navigation }, id) => {
     },
   })
   .then(async(response) => {
-    
+
+    // Checks the status code of the server response and displays an alert message accordingly.
     if (response.status == 200) {
       Alert.alert('Alert', 'Contact blocked', 
         {text: 'OK'});
@@ -361,12 +465,20 @@ const blockContact = async({ navigation }, id) => {
   });
 }
 
+
+// An asynchronous function that unblocks a contact with the specified ID and updates the contact data.
 const unblockContact = async({ navigation }, id) => {
-  console.debug("blockContact")
+
+  // Prints a debug message to the console when this function is called.
+  console.debug("unblockContact")
+
+  // Logs the ID parameter to the console.
   console.debug("ID: " + id);
 
+  // Retrieves the user's authentication token from AsyncStorage.
   const token = await AsyncStorage.getItem('x-authorization');
 
+  // Sends a DELETE request to unblock the contact on the server.
   fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}/block`, {
     method: 'DELETE',
     headers: {
@@ -376,7 +488,8 @@ const unblockContact = async({ navigation }, id) => {
     },
   })
   .then(async(response) => {
-    
+
+    // Checks the status code of the server response and displays an alert message accordingly.
     if (response.status == 200) {
       Alert.alert('Alert', 'Contact unblocked', 
         {text: 'OK'});
@@ -396,67 +509,66 @@ const unblockContact = async({ navigation }, id) => {
   });
 }
 
+
 function LoginScreen({ navigation }) {
 
+  // Get the current theme from context
   const { isDarkMode, currentStyles } = useContext(ThemeContext);
 
+  // Initialize state variables
   console.debug("LoginScreen")
   const [inputEmail, setInputEmail] = useState('');
   const [inputPassword, setInputPassword] = useState('');
   const [message, setMessage] = useState('');
 
+  // Handle user login
   const handleLogin = (email, password) => {
     console.debug("handleLogin")
     console.debug("Email: " + email);
     console.debug("Password: " + password);
-  
-    // handle login
-    var validator = require("email-validator");
-    console.debug((validator.validate(email))); //true
-  
-    const pwRX = new RegExp("^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
-    console.debug(pwRX.test(password));
-    //greater than 8 characters, including: one uppercase, one number and one special
-  
-    fetch('http://192.168.1.245:3333/api/1.0.0/login', {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-    },
 
-    body: JSON.stringify({
-      email: email,
-      password: password,
-    }),
-  })
-  .then(async(response) => {
-    
-    if (response.status == 200) {
-      const responseJson = await response.json();
-      await AsyncStorage.setItem('x-authorization', responseJson.token);
-      await AsyncStorage.setItem('id', JSON.stringify(responseJson.id));
-      const id = await AsyncStorage.getItem('id');
-      console.log("Setting ID at login. Value = " , id);
-      console.log("Auth Token. Value = " , responseJson.token);
-      setMessage('');
-      setInputEmail('');
-      setInputPassword('');
+    // Send login request to server
+    fetch('http://192.168.1.245:3333/api/1.0.0/login', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        email: email,
+        password: password,
+      }),
+    })
+    .then(async(response) => {
       
-      navigation.navigate('HomeTabs');
-    }
-    else if (response.status == 400) {
-      console.log("Login details not recognised");
-      setMessage(`Login details not recognised`);
-    }
-    else {
-      throw new Error('Server response not OK - ' + response.status); 
-    }
-  })
-  .catch((error) => {
-    console.warn(error);
-  });
-}
+      // If login is successful, save token and navigate to HomeTabs screen
+      if (response.status == 200) {
+        const responseJson = await response.json();
+        await AsyncStorage.setItem('x-authorization', responseJson.token);
+        await AsyncStorage.setItem('id', JSON.stringify(responseJson.id));
+        const id = await AsyncStorage.getItem('id');
+        console.log("Setting ID at login. Value = " , id);
+        console.log("Auth Token. Value = " , responseJson.token);
+        setMessage('');
+        setInputEmail('');
+        setInputPassword('');
+        navigation.navigate('HomeTabs');
+      }
+      // If login fails, show error message
+      else if (response.status == 400) {
+        console.log("Login details not recognised");
+        setMessage(`Login details not recognised`);
+      }
+      // If server response is not successful, throw an error
+      else {
+        throw new Error('Server response not OK - ' + response.status); 
+      }
+    })
+    .catch((error) => {
+      console.warn(error);
+    });
+  }
+  // Render the LoginScreen UI
   return (
     <ScrollView contentContainerStyle={currentStyles.scrollContainer} keyboardShouldPersistTaps="handled">
     <View style={currentStyles.container}>
@@ -503,28 +615,26 @@ function LoginScreen({ navigation }) {
 
 function RegisterScreen ({navigation}) {
   console.debug("RegisterScreen")
+
+  // Initialize state variables
   const [inputEmail, setInputEmail] = useState('');
   const [inputPassword, setInputPassword] = useState('');
   const [inputFname, setInputFname] = useState('');
   const [inputLname, setInputLname] = useState('');
-  const { isDarkMode, currentStyles } = useContext(ThemeContext);
   const [message, setMessage] = useState('');
 
+  // Get the current theme from context
+  const { isDarkMode, currentStyles } = useContext(ThemeContext);
+
+  // Handle user register
   const handleRegister = (fname, lname, email, password) => {
     console.debug("handleRegister")
     console.debug("First name: " + fname);
     console.debug("Last name: " + lname);
     console.debug("Email: " + email);
     console.debug("Password: " + password);
-  
-    // handle login
-    var validator = require("email-validator");
-    console.debug(("Email: " +validator.validate(email))); //true
-  
-    const pwRX = new RegExp("^(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$")
-    console.debug("Password: " + pwRX.test(password));
-    //greater than 8 characters, including: one uppercase, one number and one special
     
+    // Send register request to server
     fetch('http://192.168.1.245:3333/api/1.0.0/user', {
       method: 'POST',
       headers: {
@@ -540,15 +650,19 @@ function RegisterScreen ({navigation}) {
       }),
     })
     .then(async(response) => {
+
+      // If register is successful, navigate to login screen
       if (response.status == 201) {
         Alert.alert('Alert', 'Registration Successful', 
         {text: 'OK'});
         navigation.navigate('Login');
       }
+      // If register fails, show error message
       else if (response.status == 400) {
         console.log("Registration error - details not valid");
         setMessage(`Error - Email must be valid and password must be greater than 8 characters (including: one uppercase, one number and one special)`);
       }
+      // If server response is not successful, throw an error
       else {
         throw new Error('Server response not OK - ' + response.status); 
       }
@@ -558,6 +672,7 @@ function RegisterScreen ({navigation}) {
     })
   };
 
+  // Render the RegisterScreen UI
   return (
     <ScrollView contentContainerStyle={currentStyles.scrollContainer} keyboardShouldPersistTaps="handled">
       <View style={currentStyles.container}>
@@ -615,11 +730,14 @@ function RegisterScreen ({navigation}) {
   );
 };
 
+// Asynchronously fetches the user's contacts from the server and navigates to the "My Contacts" screen
 const getContacts = async({ navigation }) => {
   console.debug("getContacts")
+  // Retrieves the user's authorization token from AsyncStorage
   const token = await AsyncStorage.getItem('x-authorization');
 
   try {
+    // Sends a GET request to the server to retrieve the user's contacts
     const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/contacts`, {
       method: 'GET',
       headers: {
@@ -628,8 +746,11 @@ const getContacts = async({ navigation }) => {
       },
     });
 
+    // Parses the JSON response
     const json = await response.json();
     console.log('Contacts: ', json);
+
+    // Navigates to the "My Contacts" screen and passes the retrieved contacts as a parameter
     navigation.navigate('My Contacts', {json})
 
   } catch (error) {
@@ -638,11 +759,15 @@ const getContacts = async({ navigation }) => {
 
 };
 
+// An asynchronous function to fetch chats from the server and navigate to the 'My Chats' screen
 const getChats = async({ navigation }) => {
   console.debug("getChats")
+
+  // Get the user's authorization token from AsyncStorage
   const token = await AsyncStorage.getItem('x-authorization');
 
   try {
+    // Send a GET request to the server to fetch the chats using the authorization token
     const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/chat`, {
       method: 'GET',
       headers: {
@@ -651,16 +776,20 @@ const getChats = async({ navigation }) => {
       },
     });
 
+    // Parse the response as JSON
     const json = await response.json();
+
+    // Log the retrieved chats and navigate to the 'My Chats' screen with the retrieved chats as a parameter
     console.log('Chats: ', json);
     navigation.navigate('My Chats', {json})
 
   } catch (error) {
+    // Handle errors and log error messages
     console.error('Error fetching data:', error);
   }
-
 };
 
+// Asynchronously fetches the user's contacts from the server and returns the json
 const fetchContacts = async() => {
   console.debug("fetchContacts")
   const token = await AsyncStorage.getItem('x-authorization');
@@ -684,11 +813,15 @@ const fetchContacts = async() => {
 
 };
 
+// Async function to check whether the user has any blocked contacts
 const checkBlocked = async() => {
   console.debug("checkBlocked")
+
+  // Get the user's authentication token from AsyncStorage
   const token = await AsyncStorage.getItem('x-authorization');
 
   try {
+    // Fetch the list of blocked contacts from the server
     const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/blocked`, {
       method: 'GET',
       headers: {
@@ -697,21 +830,31 @@ const checkBlocked = async() => {
       },
     });
 
+    // Parse the response as JSON
     const json = await response.json();
+
+    // Log the blocked contacts to the console for debugging purposes
     console.log('Blocked: ', json);
+
+    // Return the list of blocked contacts
     return json;
 
   } catch (error) {
+    // Log any errors that occur during the fetch operation
     console.error('Error fetching data:', error);
   }
-
 };
 
+
+//Fetches the list of blocked contacts from the server and navigates to the 'Blocked Contacts' screen.
 const getBlockedContacts = async({ navigation }) => {
   console.debug("getContacts")
+
+  // Retrieve the authentication token from AsyncStorage
   const token = await AsyncStorage.getItem('x-authorization');
 
   try {
+    // Fetch the list of blocked contacts from the server
     const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/blocked`, {
       method: 'GET',
       headers: {
@@ -722,19 +865,26 @@ const getBlockedContacts = async({ navigation }) => {
 
     const json = await response.json();
     console.log('Contacts: ', json);
+
+    // Navigate to the 'Blocked Contacts' screen and pass the retrieved data as a parameter
     navigation.navigate('Blocked Contacts', {json})
 
   } catch (error) {
+    // Log any errors that occur while fetching data
     console.error('Error fetching data:', error);
   }
 
 };
 
+//Fetches the list of users matching the search string from the server and navigates to the 'Users' screen.
 const searchUsers = async({ navigation }, string, searchIn) => {
   console.debug("searchUsers")
+
+  // get the user's authorization token
   const token = await AsyncStorage.getItem('x-authorization');
 
   try {
+    // send a GET request to the server to search for users
     const response = await fetch(`http://192.168.1.245:3333/api/1.0.0/search?q=${string}&search_in=${searchIn}&limit=20&offset=0`, {
       method: 'GET',
       headers: {
@@ -743,8 +893,11 @@ const searchUsers = async({ navigation }, string, searchIn) => {
       },
     });
 
+    // convert the response to JSON
     const json = await response.json();
     console.log('Users: ', json);
+
+    // navigate to the Search Results screen and pass the JSON data
     navigation.navigate('Search Results', {json})
 
   } catch (error) {
@@ -753,42 +906,64 @@ const searchUsers = async({ navigation }, string, searchIn) => {
 
 };
 
+
+// This is the HomeScreen component, which displays the main screen of the app
 function HomeScreen({ navigation }) {
   console.debug("HomeScreen")
+  
+  // Get the current styles from the ThemeContext
   const { currentStyles } = useContext(ThemeContext);
 
+  // Return a View component that contains the app title, logo, and two buttons
   return (
     <View style={currentStyles.container}>
-    <View style={currentStyles.titleContainer}>
-      <Text style={currentStyles.whatsThat}>whatsThat</Text>
-      <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
-    </View>
-    <Pressable style={currentStyles.btn} onPress={() => getChats({ navigation })}>
+      <View style={currentStyles.titleContainer}>
+        <Text style={currentStyles.whatsThat}>whatsThat</Text>
+        <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
+      </View>
+
+      {/* Button that navigates to the My Chats screen */}
+      <Pressable style={currentStyles.btn} onPress={() => getChats({ navigation })}>
         <Text style={currentStyles.btnText}>My Chats</Text>
       </Pressable>
+
+      {/* Button that navigates to the My Contacts screen */}
       <Pressable style={currentStyles.btn} onPress={() => getContacts({ navigation })}>
         <Text style={currentStyles.btnText}>My Contacts</Text>
       </Pressable>
-  </View>
+    </View>
   );
 };
 
+
 function MyContactsScreen({ navigation, route }) {
   console.debug("MyContactsScreen")
+
+  // Get the current styles and dark mode state from the ThemeContext
   const { currentStyles, isDarkMode } = useContext(ThemeContext);
+
+  // Extract the JSON data passed from the previous screen through the navigation params
   const {json} = route.params;
   console.debug("json: " + json);
+
+  // Set up state for the search bar
   const [searchTerm, setSearchTerm] = useState('');
-  
+
+  // Define the function to render each item in the FlatList
   const renderItem = ({ item }) => (
     <ContactList navigation={navigation} title={item.email} id={item.user_id}/>
   );
 
   return (
+    // Main container view
     <View style={currentStyles.container}>
+
+      {/* Button to view blocked users */}
       <Pressable style={currentStyles.btn}onPress={() => getBlockedContacts({ navigation })}>
-          <Text style={currentStyles.btnText}>View Blocked Users</Text>
-        </Pressable>
+        <Text style={currentStyles.btnText}>View Blocked Users</Text>
+      </Pressable>
+
+      {/* Search bar and button */}
       <View style={currentStyles.searchBarContainer}>
         <TextInput
           style={currentStyles.input}
@@ -797,53 +972,69 @@ function MyContactsScreen({ navigation, route }) {
           value={searchTerm}
           onChangeText={setSearchTerm}
         />
-         <Pressable style={currentStyles.btn}onPress={() => searchUsers({ navigation }, searchTerm, 'all')}>
+        <Pressable style={currentStyles.btn}onPress={() => searchUsers({ navigation }, searchTerm, 'all')}>
           <Text style={currentStyles.btnText}>Search</Text>
         </Pressable>
       </View>
+
+      {/* FlatList to display the contacts */}
       <FlatList
         data={route.params.json}
         renderItem={renderItem}
         keyExtractor={(item) => item.user_id.toString()}
         style={currentStyles.list}
       />
+
     </View>
   );
 };
 
+
+// This component is responsible for rendering the list of user's chats
 function MyChatsScreen({ navigation, route }) {
   console.debug("MyChatsScreen")
+
+  // Extract styles and data from ThemeContext and route.params
   const { currentStyles } = useContext(ThemeContext);
-  const {json} = route.params;
+  const { json } = route.params;
+
   console.debug("json: " + json);
-  
+
+  // Define a renderItem function to render each chat item
   const renderItem = ({ item }) => (
     <ChatList navigation={navigation} title={item.name} id={item.chat_id}/>
   );
 
+  // Render the list of chats and a button to start a new chat
   return (
     <View style={currentStyles.container}>
-    <View>
-      <TouchableOpacity style={currentStyles.btn} onPress={() => navigation.navigate('Start Chat')}>
-        <Text style={currentStyles.btnText}>Start New Chat</Text>
-      </TouchableOpacity>
+      <View>
+        <TouchableOpacity style={currentStyles.btn} onPress={() => navigation.navigate('Start Chat')}>
+          <Text style={currentStyles.btnText}>Start New Chat</Text>
+        </TouchableOpacity>
+      </View>
+      <FlatList
+        data={route.params.json}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.chat_id.toString()}
+        style={currentStyles.list}
+      />
     </View>
-    <FlatList
-      data={route.params.json}
-      renderItem={renderItem}
-      keyExtractor={(item) => item.chat_id.toString()}
-      style={currentStyles.list}
-    />
-  </View>
   );
 };
 
+
+// A screen that displays a list of blocked contacts.
 function BlockedContactsScreen({ navigation, route }) {
   console.debug("BlockedContactsScreen")
+  
+  // Get the current theme styles and blocked contacts data.
   const { currentStyles } = useContext(ThemeContext);
-  const {json} = route.params;
+  const { json } = route.params;
+  
   console.debug("json: " + json);
   
+  // Render each blocked contact as a ContactList component.
   const renderItem = ({ item }) => (
     <ContactList navigation={navigation} title={item.email} id={item.user_id}/>
   );
@@ -860,16 +1051,22 @@ function BlockedContactsScreen({ navigation, route }) {
   );
 };
 
+
+// A screen component that displays the search results for a user search
 function SearchResultsScreen({ navigation, route }) {
   console.debug("SearchResultsScreen")
+
+  // Get the current styles from the context and the JSON data from the route params
   const { currentStyles } = useContext(ThemeContext);
   const {json} = route.params;
   console.debug("json: " + json);
   
+  // Define a renderItem function that renders a ContactList component for each item in the data array
   const renderItem = ({ item }) => (
     <ContactList navigation={navigation} title={item.given_name + ' ' + item.family_name} id={item.user_id}/>
   );
 
+  // Render the component
   return (
     <View style={currentStyles.container}>
       <FlatList
@@ -882,27 +1079,41 @@ function SearchResultsScreen({ navigation, route }) {
   );
 };
 
+// A screen component that displays another user as a contact
 function ContactScreen({ route , navigation }) {
   console.debug("ContactScreen")
+
+  // Initalise state variables
   const [contactExists, setContactExists] = useState(false);
   const [blockedExists, setBlockedExists] = useState(false);
+
+  // Get the current styles from the context and the JSON data from the route params
   const { currentStyles } = useContext(ThemeContext);
   const {json, image} = route.params;
   console.debug("json: " + json);
   console.debug("image: " + image);
+
+  // Parse the json into seperate componenets
   const { user_id, first_name, last_name, email } = json;
 
   useEffect(() => {
     const fetchData = async (userId) => {
+
+      // Fetch Contacts and Blocked users
       const contacts =  await fetchContacts();
       const blocked =  await checkBlocked();
+
+      // Cycles through Contacts, if they are a contact contactExists is set to true
       setContactExists(contacts.some(user => user.user_id === userId));
+
+      // Cycles through Blocked users, if they are a blocked blockedExists is set to true
       setBlockedExists(blocked.some(user => user.user_id === userId));
       console.log("contactExists: ", contactExists)
     }
     fetchData(user_id);
   }, []);
 
+  // Displays the UI for a blocked user
   if(blockedExists) return (
     <View style={currentStyles.container}>
         <View style={currentStyles.titleContainer}>
@@ -929,12 +1140,14 @@ function ContactScreen({ route , navigation }) {
           </View>
         </View>
         <View style={currentStyles.container}>
+          {/* Button to unblock user */}
         <Pressable style={currentStyles.btn} onPress={() => unblockContact({ navigation }, user_id)}>
           <Text style={currentStyles.btnText}>Unblock Contact</Text>
         </Pressable>
       </View>
     </View>
   );
+  // Displays the UI for a contact
   if(contactExists) return (
     <View style={currentStyles.container}>
         <View style={currentStyles.titleContainer}>
@@ -961,15 +1174,18 @@ function ContactScreen({ route , navigation }) {
           </View>
         </View>
         <View style={currentStyles.container}>
+          {/* Button to delete contact */}
         <Pressable style={currentStyles.btn} onPress={() => deleteContact({ navigation }, user_id)}>
           <Text style={currentStyles.btnText}>Delete Contact</Text>
         </Pressable>
+        {/* Button to block contact */}
         <Pressable style={currentStyles.btn} onPress={() => blockContact({ navigation }, user_id)}>
           <Text style={currentStyles.btnText}>Block Contact</Text>
         </Pressable>
       </View>
     </View>
   );
+  // Displays the UI for a user who hasnt been added as a contact
   return (
       <View style={currentStyles.container}>
         <View style={currentStyles.titleContainer}>
@@ -996,6 +1212,7 @@ function ContactScreen({ route , navigation }) {
           </View>
         </View>
         <View style={currentStyles.container}>
+          {/* Button to add contact */}
         <Pressable style={currentStyles.btn} onPress={() => addContact({ navigation }, user_id)}>
           <Text style={currentStyles.btnText}>Add as Contact</Text>
         </Pressable>
@@ -1005,19 +1222,26 @@ function ContactScreen({ route , navigation }) {
 };
 
 function ChatScreen({ route, navigation }) {
-  console.debug('ChatScreen');
+  // Import styles from the current theme
   const { currentStyles } = useContext(ThemeContext);
+
+  // Get the chat data and ID from the route params
   const { json, id } = route.params;
+
+  // State variables for the input text, user ID, updated message, and selected message
   const [inputText, setInputText] = useState('');
-  const [userID, setuserID] = useState('');
   const [updatedMessage, setUpdatedMessage] = useState('');
   const [selectedMessage, setSelectedMessage] = useState(null);
 
+  // Function to send a message
   const sendMessage = (string) => {
+    // Reset the input text
     setInputText('');
+    // Call the postMessage function to send the message
     postMessage({ navigation }, id, string);
   };
 
+  // Function to format a timestamp as a string
   const formatDate = (timestamp) => {
     const date = new Date(timestamp);
     const day = date.getDate();
@@ -1027,91 +1251,104 @@ function ChatScreen({ route, navigation }) {
     return `${day}/${month+1} ${hours}:${minutes}`;
   };
 
+  // Function to handle when a message is pressed
   const handlePressMessage = (message) => {
+    // Set the selected message
     setSelectedMessage(message);
   };
 
+  // Function to handle updating a message
   const handleUpdateMessage = async ({ navigation } , chat_id, message_id, newMessage) => {
-      setSelectedMessage(null);
-      console.debug("handleUpdateMessage")
-      console.debug("chat_id: " + chat_id);
-      console.debug("message_id: " + message_id);
-      console.debug("newMessage: " + newMessage);
-
-  
-      const token = await AsyncStorage.getItem('x-authorization');
-  
-      fetch(`http://192.168.1.245:3333/api/1.0.0//chat/${chat_id}/message/${message_id}`, {
-        method: 'PATCH',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Authorization': token,
-        },
-    
-        body: JSON.stringify({
-          message: newMessage,
-        }),
-      })
-      .then((response) => {
-        if (response.status == 200) {
-          getChat({ navigation }, chat_id);
-        } else {
-          Alert.alert('Alert', 'Error', 
-          {text: 'OK'});
-          throw new Error('Server response not OK - ' + response.status);
-          
-        }
-      })
-      .catch((error) => {
-        console.warn(error);
-      });
-    }
-
-  const handleDeleteMessage = async ({ navigation } , chat_id, message_id) => {
-    console.debug("handleDeleteMessage")
-      console.debug("chat_id: " + chat_id);
-      console.debug("message_id: " + message_id);
-  
-      const token = await AsyncStorage.getItem('x-authorization');
-  
-      fetch(`http://192.168.1.245:3333/api/1.0.0//chat/${chat_id}/message/${message_id}`, {
-        method: 'DELETE',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Authorization': token,
-        },
-      })
-      .then((response) => {
-        if (response.status == 200) {
-          getChat({ navigation }, chat_id);
-        } else {
-          Alert.alert('Alert', 'Error', 
-          {text: 'OK'});
-          throw new Error('Server response not OK - ' + response.status);
-          
-        }
-      })
-      .catch((error) => {
-        console.warn(error);
-      });
-  };
-  const handleCancelMessage = () => {
+    // Reset the selected message
     setSelectedMessage(null);
-  };
+    console.debug("handleUpdateMessage")
+    console.debug("chat_id: " + chat_id);
+    console.debug("message_id: " + message_id);
+    console.debug("newMessage: " + newMessage);
 
-  // Sort messages by timestamp in ascending order
-  const sortedMessages = json.messages.slice().sort((a, b) => a.timestamp - b.timestamp);
+    // Get the user token from AsyncStorage
+    const token = await AsyncStorage.getItem('x-authorization');
+
+    // Make a PATCH request to update the message
+    fetch(`http://192.168.1.245:3333/api/1.0.0//chat/${chat_id}/message/${message_id}`, {
+      method: 'PATCH',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Authorization': token,
+      },
+  
+      body: JSON.stringify({
+        message: newMessage,
+      }),
+    })
+    .then((response) => {
+      // If the server response is OK, reload the chat
+      if (response.status == 200) {
+        getChat({ navigation }, chat_id);
+      } else {
+        // If there is an error, display an alert and throw an error
+        Alert.alert('Alert', 'Error', {text: 'OK'});
+        throw new Error('Server response not OK - ' + response.status);
+      }
+    })
+    .catch((error) => {
+      // Log any errors that occur
+      console.warn(error);
+    });
+  }
+
+// Function to handle deleting a message from the chat
+const handleDeleteMessage = async ({ navigation } , chat_id, message_id) => {
+  console.debug("handleDeleteMessage")
+  console.debug("chat_id: " + chat_id);
+  console.debug("message_id: " + message_id);
+
+  // Get token from AsyncStorage
+  const token = await AsyncStorage.getItem('x-authorization');
+
+  // Send DELETE request to API
+  fetch(`http://192.168.1.245:3333/api/1.0.0//chat/${chat_id}/message/${message_id}`, {
+    method: 'DELETE',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      'X-Authorization': token,
+    },
+  })
+  .then((response) => {
+    if (response.status == 200) {
+      // If successful, get updated chat data
+      getChat({ navigation }, chat_id);
+    } else {
+      // If not successful, throw an error
+      Alert.alert('Alert', 'Error', {text: 'OK'});
+      throw new Error('Server response not OK - ' + response.status);
+    }
+  })
+  .catch((error) => {
+    console.warn(error);
+  });
+};
+
+// Function to handle cancelling message update or deletion
+const handleCancelMessage = () => {
+  setSelectedMessage(null);
+};
+
+// Sorted messages oldest to newest
+const sortedMessages = json.messages.slice().sort((a, b) => a.timestamp - b.timestamp);
 
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={currentStyles.container}
     >
+      {/* When title is pressed it navigates to the chat details page */}
       <TouchableOpacity onPress={() => navigation.navigate('Chat Details', {json, id})}>
         <Text style={currentStyles.title}>{json.name}</Text>
       </TouchableOpacity>
+      {/* Flatlist to display messages */}
       <FlatList
         style={currentStyles.list}
         data={sortedMessages}
@@ -1132,6 +1369,7 @@ function ChatScreen({ route, navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={currentStyles.messageInputWrapper}
     >
+      {/* Container for chat input */}
       <View style={currentStyles.inputMessageContainer}>
         <TextInput
           style={currentStyles.input}
@@ -1144,6 +1382,7 @@ function ChatScreen({ route, navigation }) {
           <Text style={currentStyles.btnText}>Send</Text>
         </TouchableOpacity>
       </View>
+      {/* If a message is pressed, open the Update/Delete tab */}
       {selectedMessage && (
         <View style={currentStyles.inputMessageContainer}>
           <TouchableOpacity style={currentStyles.updateButton} onPress={() => handleUpdateMessage({ navigation }, id, selectedMessage.message_id, updatedMessage)}>
@@ -1170,13 +1409,14 @@ function ChatScreen({ route, navigation }) {
 };
 
 
-
+// Screen component for adding contacts to a chat
 function AddToChatScreen({ route , navigation }) {
   console.debug("AddToChatScreen")
   const { currentStyles } = useContext(ThemeContext);
   const {json, chat_id} = route.params;
   console.debug("contacts: " + json);
 
+  // Function to render a contact in the list of contacts
   const renderContact = ({ item }) => (
     <View style={currentStyles.contactContainer}>
       <TouchableOpacity
@@ -1208,12 +1448,14 @@ function AddToChatScreen({ route , navigation }) {
   );
 };
 
+// Screen component for displaying chat details, including chat members and the ability to remove them
 function ChatDetailsScreen({ route , navigation }) {
   console.debug("ChatDetailsScreen")
   const { currentStyles } = useContext(ThemeContext);
   const {json, id} = route.params;
   console.debug("json: " + json);
   
+  // Function for rendering a chat member item
   const renderMember = ({ item }) => (
     <View style={currentStyles.contactContainer}>
       <TouchableOpacity
@@ -1226,7 +1468,8 @@ function ChatDetailsScreen({ route , navigation }) {
       
     </View>
   );
-
+  
+  // Function to navigate to the Add To Chat screen with the contacts and chat_id as parameters
   const addToChat = async () => {
     const contacts = await fetchContacts();
     console.log(contacts);
@@ -1270,12 +1513,19 @@ function ChatDetailsScreen({ route , navigation }) {
 
 function ProfileScreen({ route , navigation }) {
   console.debug("ProfileScreen")
+
+  // Get current theme styles from the context
   const { currentStyles } = useContext(ThemeContext);
+
+  // Get the user JSON object and profile picture URI from the navigation route params
   const {json, image} = route.params;
   console.debug("json: " + json);
   console.debug("image: " + image);
+
+  // Extract user information from the JSON object
   const { user_id, first_name, last_name, email } = json;
-  
+
+  // Function to upload the user's profile picture (not implemented)
   const uploadProfilePic = async (id) => {console.log("uploadProfilePic");}
 
   return (
@@ -1285,7 +1535,8 @@ function ProfileScreen({ route , navigation }) {
           <Image style={currentStyles.logo} source={require('./assets/logo.png')} />
         </View>
         <View style={currentStyles.profileContainer}>
-        <Image source={{ uri: image }} style={currentStyles.image} />
+          {/* Display the user's profile picture */}
+          <Image source={{ uri: image }} style={currentStyles.image} />
           <View style={currentStyles.userInfo}>
             <Text style={currentStyles.titleText}>User ID:</Text>
             <Text style={currentStyles.text}>{user_id}</Text>
@@ -1304,57 +1555,64 @@ function ProfileScreen({ route , navigation }) {
           </View>
         </View>
         <View style={currentStyles.container}>
-        <Pressable style={currentStyles.btn} onPress={() => navigation.navigate('Edit Profile', {json})}>
-          <Text style={currentStyles.btnText}>Edit details</Text>
-        </Pressable>
-        <Pressable style={currentStyles.btn} onPress={() => uploadProfilePic(user_id)}>
-          <Text style={currentStyles.btnText}>Upload profile picture</Text>
-        </Pressable>
+          {/* Button to navigate to the Edit Profile screen */}
+          <Pressable style={currentStyles.btn} onPress={() => navigation.navigate('Edit Profile', {json})}>
+            <Text style={currentStyles.btnText}>Edit details</Text>
+          </Pressable>
+          {/* Button to upload a new profile picture (not implemented) */}
+          <Pressable style={currentStyles.btn} onPress={() => uploadProfilePic(user_id)}>
+            <Text style={currentStyles.btnText}>Upload profile picture</Text>
+          </Pressable>
+        </View>
       </View>
-    </View>
   );
 };
 
+// Screen component to allow user to edit chat name
 function EditChatScreen({ route, navigation }) {
   console.debug("EditChatScreen")
+
+  // Get current style theme and data from route params
   const { isDarkMode, currentStyles } = useContext(ThemeContext);
   const { json, id } = route.params;
   const [inputName, setInputName] = useState(json.name);
 
+  // Function to edit chat name via API call
   const editChat = async(id, name) => {
     console.debug("editChat")
     console.debug("ID: " + id);
     console.debug("Name: " + name);
 
-    const token = await AsyncStorage.getItem('x-authorization');
+   // Get token from AsyncStorage
+const token = await AsyncStorage.getItem('x-authorization');
 
-    fetch(`http://192.168.1.245:3333/api/1.0.0/chat/${id}`, {
-      method: 'PATCH',
-      headers: {
-        Accept: 'application/json',
-        'Content-Type': 'application/json',
-        'X-Authorization': token,
-      },
-  
-      body: JSON.stringify({
-        name: name,
-      }),
-    })
-    .then((response) => {
-      if (response.status == 200) {
-        Alert.alert('Alert', 'Details Changed Successfully', 
-        {text: 'OK'});
-        getChats({ navigation })
-      } else {
-        Alert.alert('Alert', 'Error', 
-        {text: 'OK'});
-        throw new Error('Server response not OK - ' + response.status);
-        
-      }
-    })
-    .catch((error) => {
-      console.warn(error);
-    });
+// Send PATCH request to API
+fetch(`http://192.168.1.245:3333/api/1.0.0/chat/${id}`, {
+  method: 'PATCH',
+  headers: {
+    Accept: 'application/json',
+    'Content-Type': 'application/json',
+    'X-Authorization': token,
+  },
+
+  body: JSON.stringify({
+    name: name,
+  }),
+})
+.then((response) => {
+  if (response.status == 200) {
+    // If successful, display confirmation alert and navigate back to Chats screen
+    Alert.alert('Alert', 'Details Changed Successfully', {text: 'OK'});
+    getChats({ navigation })
+  } else {
+    // If not successful, throw an error
+    Alert.alert('Alert', 'Error', {text: 'OK'});
+    throw new Error('Server response not OK - ' + response.status);
+  }
+})
+.catch((error) => {
+  console.warn(error);
+});
   }
   return (
     <View style={currentStyles.container}>
@@ -1382,47 +1640,49 @@ function EditChatScreen({ route, navigation }) {
 );
 }
 
-  function StartChatScreen({ navigation }) {
-    console.debug("StartChatScreen")
-    const { isDarkMode, currentStyles } = useContext(ThemeContext);
-    const [inputName, setInputName] = useState('');
-  
-    const startChat = async(name) => {
-      console.debug("startChat")
-      const token = await AsyncStorage.getItem('x-authorization');
-      
-      fetch(`http://192.168.1.245:3333/api/1.0.0/chat`, {
-        method: 'POST',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          'X-Authorization': token,
-        },
-        body: JSON.stringify({
-          name: name
-        }),
-      })
-      .then(async(response) => {
-        
-        if (response.status == 201) {
-          Alert.alert('Alert', 'Chat started', 
-            {text: 'OK'});
-          getChats({ navigation })
-        }
-        else if (response.status == 400) {
-          Alert.alert('Alert', 'Error', 
-            {text: 'OK'});
-            getChats({ navigation })
-        }
-        else {
-          throw new Error('Server response not OK - ' + response.status); 
-        }
-      })
-      .catch((error) => {
-        console.warn(error);
-      });
+// Screen component to start a new chat with a given name
+function StartChatScreen({ navigation }) {
+  console.debug("StartChatScreen")
+  const { isDarkMode, currentStyles } = useContext(ThemeContext);
+  const [inputName, setInputName] = useState('');
+
+  // Function to start a new chat with the given name
+  const startChat = async(name) => {
+    console.debug("startChat")
+    const token = await AsyncStorage.getItem('x-authorization');
     
-    };
+    fetch(`http://192.168.1.245:3333/api/1.0.0/chat`, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Authorization': token,
+      },
+      body: JSON.stringify({
+        name: name
+      }),
+    })
+    .then(async(response) => {
+      
+      if (response.status == 201) {
+        Alert.alert('Alert', 'Chat started', 
+          {text: 'OK'});
+        getChats({ navigation })
+      }
+      else if (response.status == 400) {
+        Alert.alert('Alert', 'Error', 
+          {text: 'OK'});
+          getChats({ navigation })
+      }
+      else {
+        throw new Error('Server response not OK - ' + response.status); 
+      }
+    })
+    .catch((error) => {
+      console.warn(error);
+    });
+  
+  };
 
   return (
       <View style={currentStyles.container}>
@@ -1452,17 +1712,21 @@ function EditChatScreen({ route, navigation }) {
 
 function EditProfileScreen({ route, navigation }) {
   console.debug("EditProfileScreen")
+
+  // Get the current style theme and user details from route parameters
   const { isDarkMode, currentStyles } = useContext(ThemeContext);
   const tempJson = route.params;
   const { json } = tempJson;
   const { user_id, first_name, last_name, email } = json;
 
+  // Initialize state variables for input fields and error message
   const [inputEmail, setInputEmail] = useState(email);
   const [inputFname, setInputFname] = useState(first_name);
   const [inputLname, setInputLname] = useState(last_name);
   const [inputPassword, setInputPassword] = useState('');
   const [message, setMessage] = useState(null);
 
+  // Function to send PATCH request to update user details
   const editProfile = async(id, fname, lname, email, password) => {
     console.debug("editProfile")
     console.debug("ID: " + id);
@@ -1472,8 +1736,10 @@ function EditProfileScreen({ route, navigation }) {
     console.debug("Email: " + email);
     console.debug("Password: " + password);
 
+    // Get the JWT token from AsyncStorage
     const token = await AsyncStorage.getItem('x-authorization');
 
+    // Send PATCH request to API endpoint with updated user details
     fetch(`http://192.168.1.245:3333/api/1.0.0/user/${id}`, {
       method: 'PATCH',
       headers: {
@@ -1490,14 +1756,15 @@ function EditProfileScreen({ route, navigation }) {
       }),
     })
     .then((response) => {
+      // Handle server response
       if (response.status == 200) {
         Alert.alert('Alert', 'Details Changed Successfully', 
         {text: 'OK'});
         navigation.navigate("Settings")
       } else {
+        // Display error message for invalid email/password format
         setMessage(`Error: Email must be valid and password must be greater than 8 characters (including: one uppercase, one number and one special)`);
-        throw new Error('Server response not OK - ' + response.status);
-        
+        throw new Error('Server response not OK - ' + response.status);  
       }
     })
     .catch((error) => {
@@ -1566,15 +1833,21 @@ function EditProfileScreen({ route, navigation }) {
 
 function SettingsScreen({ navigation }) {
   console.debug("Settings")
+
+  // get the current theme from the context
   const { isDarkMode, setIsDarkMode, currentStyles } = useContext(ThemeContext);
 
+  // toggle the theme when the button is pressed
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
   };
 
+  // state to hold the user ID retrieved from AsyncStorage
   const [id, setID] = useState(null);
+  // state to indicate if the data is being loaded from AsyncStorage
   const [loading, setLoading] = useState(true);
 
+  // retrieve the user ID from AsyncStorage when the component mounts
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -1587,6 +1860,7 @@ function SettingsScreen({ navigation }) {
 
   console.log("SettingsScreen id: ", id);
 
+  // handle the logout request
   const handleLogout = async() => {
   
     const token = await AsyncStorage.getItem('x-authorization');
@@ -1603,6 +1877,7 @@ function SettingsScreen({ navigation }) {
     })
     .then((response) => {
       if (response.status == 200) {
+        // navigate back to the login screen after successful logout
         navigation.navigate('Login');
       } else {
         throw new Error('Server response not OK - ' + response.status);
@@ -1611,15 +1886,18 @@ function SettingsScreen({ navigation }) {
     .catch((error) => {
       console.warn(error);
     });
-  
   };
 
+  // render loading message while the user ID is being retrieved from AsyncStorage
   if(loading) return (
     <Text style={currentStyles.text}>Loading</Text>
   );
+  // render error message if the user ID is not available
   if (!id) return (
     <Text style={currentStyles.text}>Data not available</Text>
   );
+
+  // render the settings screen with toggle button for theme, buttons for profile and logout
   return (
     <View style={currentStyles.container}>
       <View style={currentStyles.titleContainer}>
@@ -1640,11 +1918,15 @@ function SettingsScreen({ navigation }) {
   );
 }
 
+
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
+// define a function that returns the home tab navigator
 function HomeTabs() {
   console.debug("HomeTabs")
+
+  // return the tab navigator with two screens: Home and Settings
   return (
     <Tab.Navigator
     initialRouteName="Home"
@@ -1691,8 +1973,11 @@ function HomeTabs() {
   );
 }
 
+// define the main App component
 function App() {
   console.debug("App")
+
+  // return the NavigationContainer component with the stack navigator
   return (
     <ThemeProvider>
       <NavigationContainer theme={theme}>

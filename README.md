@@ -1,2 +1,2 @@
-��#� �w�h�a�t�s�T�h�a�t�
+# whatsThat
 Git Hub: https://github.com/AranVella/whatsThat
